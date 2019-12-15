@@ -17,7 +17,8 @@ var config = {
             player: null,
             reticle: null,
             moveKeys: null,
-            bullets: null,
+            hero_bullets: null,
+            enemy_bullets: null,
             time: 0,
             enemies: [],
         }
@@ -25,7 +26,7 @@ var config = {
 };
 
 let game = new Phaser.Game(config);
-
+let score=0;
 function preload() {
     this.load.image('bullet', 'bullet01.png');
     this.load.spritesheet('hero','hero.png',{frameWidth: 16, frameHeight:26})
@@ -41,17 +42,18 @@ function create() {
     const map = this.make.tilemap({ key: 'cybernoid' });
     const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
     const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
-    layer.setCollisionByExclusion([-1]);
+    
+    layer.setCollision([0,1,2,7,8,9,16,17,31]);
 
     this.hero = this.physics.add.sprite(400, 300, 'hero');
-    //this.hero.setScale(2);
     this.hero.health = 100;
     this.hero.setCollideWorldBounds(true);
-    
-    this.cameras.main.zoom = 1.5;
-    this.cameras.main.startFollow(this.hero);
-    
-    //this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
+
+    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText.setScrollFactor(0);
+    this.cameras.main.startFollow(this.hero, true);
+    this.cameras.main.setBounds(0,0,map.widthInPixels, map.heightInPixels)
+    this.physics.world.setBounds(0,0,map.widthInPixels, map.heightInPixels)
 
     this.anims.create({
         key: 'left',
@@ -80,35 +82,27 @@ function create() {
         frameRate: 10
     })
 
-    // this.bullets = this.add.group();
-    // this.bullets.createMultiple({
-    //     frameQuantity: 9999,
-    //     key: 'bullet',
-    //     active: false,
-    //     visible: false,
-    // });
-
-
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
     
-    this.bullets = this.physics.add.group();
+    this.hero_bullets = this.physics.add.group();
+    this.enemy_bullets = this.physics.add.group();
 
     this.input.on('pointerdown', (pointer) => {
-
-        this.bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
-        this.bullet = this.bullets.getFirstDead();
-        console.log(this.bullet);
+        pointer.camera = this.cameras.main;
+        this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+        this.bullet = this.hero_bullets.getFirstDead();
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
         this.bullet.setScale(2);
-        this.physics.moveTo(this.bullet, pointer.x, pointer.y, 1000);
+        this.physics.moveTo(this.bullet, pointer.x + this.cameras.main.scrollX, pointer.y + this.cameras.main.scrollY, 1000);
     });
 
 
-    this.physics.world.addCollider(this.enemies, this.bullets, function (enemy, bullet) {
-        console.log("XD")
+    this.physics.world.addCollider(this.enemies, this.hero_bullets, function (enemy, bullet) {
         enemy.destroy();
+        score+=10;
+        console.log(score);
         bullet.destroy();
     });
 
@@ -118,34 +112,53 @@ function create() {
 
     });
 
-    this.physics.world.addCollider(this.hero, layer);
+    this.physics.world.addCollider(this.hero, this.enemy_bullets, function (sprite, enemy_bullets) {
+        sprite.health -= 15;
+        enemy_bullets.destroy();
+
+    });
+
+    this.physics.world.addCollider(this.enemies, this.enemies);
+
+    this.physics.world.addCollider(this.hero,layer)
 
     cursorKeys = this.input.keyboard.createCursorKeys();
+
+    
+
+    
 
 }
 
 function update() {
 
+    this.scoreText.setText('Score: ' + score);
     if (this.hero.health <= 0) this.scene.restart();
 
     for (let i = 0; i < this.enemies.length; i++) {
-        if (this.enemies[i].active === false) console.log(this.enemies.splice(i, 1));
+
+        if (this.enemies[i].active === false) this.enemies.splice(i, 1);
+        else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 60);
+
+        let tmp = Math.random() * 100;
+        if (this.timeClock.now % 1000 > 985 && tmp>50) {
+            this.enemy_bullets.create(this.enemies[i].x, this.enemies[i].y, 'bullet', 0, false, false);
+            this.bullet = this.enemy_bullets.getFirstDead();
+            this.bullet.setActive(true);
+            this.bullet.setVisible(true);
+            this.bullet.setScale(1);
+            this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
+        }
     }
+
+
 
     if (this.timeClock.now % 1000 > 985 && this.enemies.length < 3) {
 
         let x = Math.floor(Math.random() * 800);
-        let y = Math.floor(Math.random() * 600);
+        let y = 0;
         let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
-        let tmp_num = Math.floor(Math.random() * 5);
-        if (tmp_num === 0) tmp_enem.setVelocityX(100);
-        else if (tmp_num === 1) tmp_enem.setVelocityX(-200);
-        else if (tmp_num === 2) tmp_enem.setVelocityY(-200);
-        else if (tmp_num === 3) tmp_enem.setVelocityY(200);
-        else if (tmp_num === 4) {
-            tmp_enem.setVelocityX(200);
-            tmp_enem.setVelocityY(-200);
-        }
+        
         tmp_enem.setCollideWorldBounds(true);
         tmp_enem.setBounce(1);
         this.enemies.push(tmp_enem);
@@ -154,7 +167,23 @@ function update() {
 
     this.hero.setVelocityX(0)
     this.hero.setVelocityY(0)
-    if (cursorKeys.up.isDown) {
+    if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
+        this.hero.setVelocityY(160);
+        this.hero.setVelocityX(160);
+        this.hero.anims.play('right',true);
+    } else if (cursorKeys.left.isDown && cursorKeys.down.isDown) {
+        this.hero.setVelocityY(160);
+        this.hero.setVelocityX(-160);
+        this.hero.anims.play('left',true);
+    } else if (cursorKeys.right.isDown && cursorKeys.up.isDown) {
+        this.hero.setVelocityY(-160);
+        this.hero.setVelocityX(160);
+        this.hero.anims.play('right',true);
+    } else if (cursorKeys.left.isDown && cursorKeys.up.isDown) {
+        this.hero.setVelocityY(-160);
+        this.hero.setVelocityX(-160);
+        this.hero.anims.play('left',true);
+    } else if (cursorKeys.up.isDown) {
         this.hero.anims.play('right',true);
         this.hero.setVelocityY(-160);
     } 
@@ -163,44 +192,21 @@ function update() {
         this.hero.setVelocityY(160);
     } 
     else if (cursorKeys.left.isDown) {
-        this.hero.setVelocityX(0)
         this.hero.setVelocityX(-160);
         this.hero.anims.play('left',true );
     } 
     else if (cursorKeys.right.isDown) {
-        this.hero.setVelocityX(0)
         this.hero.setVelocityX(160);
         this.hero.anims.play('right',true);
     } else {
-    this.hero.anims.play('stop' );
+        this.hero.anims.play('stop' );
     
     }
 
     
 }
 
-
-function destroyEnemy(enemyList, enemy) {
-    for (let i = 0; i < enemyList.length; i++) {
-        if (enemy === enemyList[i]) enemyList.slice(i, 1);
-        break;
-    }
-    return enemyList;
-}
-
-function fireBullet(x, y, hero_x, hero_y, bullets) {
-    let bullet = bullets.getFirstDead(false);
-    if (bullet) {
-        //bullet.body.reset(hero_x, hero_y);
-        fire(x, y, hero_x, hero_y, bullet);
-    }
-}
-
-function fire(x, y, hero_x, hero_y, bullet) {
-    //bullet.body.reset(hero_x, hero_y);
-
-    bullet.setActive(true);
-    bullet.setVisible(true);
-    bullet.setScale(2);
-    world.physics.moveTo(bullet, x, y, 1000);
+function addScore(val) {
+    this.score+=val;
+    console.log(this.score);
 }
