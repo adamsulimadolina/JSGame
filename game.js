@@ -110,17 +110,27 @@ class Main extends Phaser.Scene
 
     update() 
     {
-        if(this.timeClock.now % 1000 > 985 && this.enemies.length < 15)
+        for(let i=0; i<this.enemies.length; i++) {
+            if(this.enemies[i].active === false) console.log(this.enemies.splice(i,1));
+            console.log(this.enemies);
+        }
+        if(this.timeClock.now % 1000 > 985 && this.enemies.length < 3)
         {
+            
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
-            let tmp_num = Math.floor(Math.random() * 4);
+            let tmp_num = Math.floor(Math.random() * 5);
             if(tmp_num === 0) tmp_enem.setVelocityX(100);
-            else if(tmp_num === 1) tmp_enem.setVelocityX(-100);
-            else if(tmp_num === 2) tmp_enem.setVelocityY(-100);
-            else if(tmp_num === 3) tmp_enem.setVelocityY(-100);
+            else if(tmp_num === 1) tmp_enem.setVelocityX(-200);
+            else if(tmp_num === 2) tmp_enem.setVelocityY(-200);
+            else if(tmp_num === 3) tmp_enem.setVelocityY(200);
+            else if(tmp_num === 4) {
+                tmp_enem.setVelocityX(200);
+                tmp_enem.setVelocityY(-200);
+            }
             tmp_enem.setCollideWorldBounds(true);
+            tmp_enem.setBounce(1);
             this.enemies.push(tmp_enem);
         }
         var cursorKeys = this.input.keyboard.createCursorKeys();
