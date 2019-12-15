@@ -6,6 +6,7 @@ class Hero extends Phaser.Physics.Arcade.Sprite
         this.sprite = scene.physics.add.sprite(x,y,'ball');
         this.sprite.setScale(2);
         this.sprite.health = 100;
+        this.sprite.setCollideWorldBounds(true);
     }
 }
 
@@ -94,22 +95,27 @@ class Main extends Phaser.Scene
 
     create ()
     {
+        const map = this.make.tilemap({key: 'cybernoid'});
+        const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
+        const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
+        layer.setCollisionByExclusion([ -1 ]);
+        
+        console.log(layer);
+
+
         this.timeClock = new Phaser.Time.Clock(this);
         this.timeClock.start();
 
         this.bullets = new Bullets(this);
         this.ball = new Hero(this, 400, 300);
-
-
-        const map = this.make.tilemap({key: 'cybernoid'});
-        const tileset = map.addTilesetImage('XD', 'gameTiles');
-        const background = map.createStaticLayer('bg', tileset, 0, 0);
        
         this.input.on('pointerdown', (pointer) => {
 
             this.bullets.fireBullet(pointer.x, pointer.y, this.ball.sprite.x, this.ball.sprite.y);
 
         });
+        
+        this.physics.world.addCollider(this.ball, layer);
 
         this.physics.world.addCollider(this.enemies, this.bullets, function(enemy, bullet) {
             enemy.destroy();
