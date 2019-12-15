@@ -4,31 +4,29 @@ var config = {
     width: 800,
     height: 600,
     physics: {
-      default: 'arcade',
-      arcade: {
-        gravity: { y: 0 },
-        debug: true
-      }
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+        }
     },
     scene: {
         preload: preload,
         create: create,
         update: update,
         extend: {
-                    player: null,
-                    reticle: null,
-                    moveKeys: null,
-                    bullets: [],
-                    time: 0,
-                    enemies: [],
-                }
+            player: null,
+            reticle: null,
+            moveKeys: null,
+            bullets: [],
+            time: 0,
+            enemies: [],
+        }
     }
 };
 
 let game = new Phaser.Game(config);
 
-function preload()
-{
+function preload() {
     this.load.image('bullet', 'bullet01.png');
     this.load.image('ball', 'ball.png');
     this.load.image('enemy', 'ball.png');
@@ -38,44 +36,44 @@ function preload()
     this.load.image('gameTiles', 'cybernoid.png');
 }
 
-function create()
-{
-    this.hero = this.physics.add.sprite(400, 300, 'ball');
-    this.hero.setScale(2);
-    this.hero.health = 100;
-    this.hero.setCollideWorldBounds(true);
-
-
-    this.bullets = this.add.group();
-    this.bullets.createMultiple({
-        frameQuantity: 9999,
-        key: 'bullet',
-        active: false,
-        visible: false,
-    });
-
-
+function create() {
     const map = this.make.tilemap({ key: 'cybernoid' });
     const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
     const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
     layer.setCollisionByExclusion([-1]);
 
-    console.log(layer);
+    this.hero = this.physics.add.sprite(400, 300, 'ball');
+    this.hero.setScale(2);
+    this.hero.health = 100;
+    this.hero.setCollideWorldBounds(true);
+    
+
+    // this.bullets = this.add.group();
+    // this.bullets.createMultiple({
+    //     frameQuantity: 9999,
+    //     key: 'bullet',
+    //     active: false,
+    //     visible: false,
+    // });
 
 
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
-
+    
+    this.bullets = this.physics.add.group();
 
     this.input.on('pointerdown', (pointer) => {
 
-        this.bullets.fireBullet(pointer.x, pointer.y, this.hero.x, this.hero.y);
-
+        this.bullet = this.physics.add.sprite(this.hero.x, this.hero.y, 'bullet');
+        this.bullet.setActive(true);
+        this.bullet.setVisible(true);
+        this.bullet.setScale(2);
+        this.physics.moveTo(this.bullet, pointer.x, pointer.y, 1000);
     });
 
-    this.physics.world.addCollider(this.hero, layer);
 
-    this.physics.world.addCollider(this.enemies, this.bullets, function (enemy, bullet) {
+    this.physics.world.addCollider(this.enemies, this.bullet, function (enemy, bullet) {
+        console.log("XD")
         enemy.destroy();
         bullet.destroy();
     });
@@ -87,8 +85,8 @@ function create()
     });
 }
 
-function update()
-{
+function update() {
+
     if (this.hero.health <= 0) this.scene.restart();
 
     for (let i = 0; i < this.enemies.length; i++) {
@@ -139,20 +137,19 @@ function destroyEnemy(enemyList, enemy) {
     return enemyList;
 }
 
-function fireBullet(x, y, hero_x, hero_y) {
-    let bullet = this.getFirstDead(false);
-
+function fireBullet(x, y, hero_x, hero_y, bullets) {
+    let bullet = bullets.getFirstDead(false);
     if (bullet) {
-        bullet.fire(x, y, hero_x, hero_y);
+        //bullet.body.reset(hero_x, hero_y);
+        fire(x, y, hero_x, hero_y, bullet);
     }
 }
 
-function fire(x, y, hero_x, hero_y) {
-    this.body.reset(hero_x, hero_y);
+function fire(x, y, hero_x, hero_y, bullet) {
+    //bullet.body.reset(hero_x, hero_y);
 
-    this.setActive(true);
-    this.setVisible(true);
-    this.setScale(2);
-
-    this.scene.physics.moveTo(this, x, y, 1000);
+    bullet.setActive(true);
+    bullet.setVisible(true);
+    bullet.setScale(2);
+    world.physics.moveTo(bullet, x, y, 1000);
 }
