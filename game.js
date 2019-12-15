@@ -49,7 +49,14 @@ function create() {
     this.hero.setCollideWorldBounds(true);
     
     
-    this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
+    //this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
+
+    this.anims.create({
+        key: 'left',
+        frames: this.anims.generateFrameNumbers('hero', {start: 0, end: 3}),
+        frameRate: 30,
+        repeat: -1
+    })
 
     // this.bullets = this.add.group();
     // this.bullets.createMultiple({
@@ -128,6 +135,7 @@ function update() {
     }
     if (cursorKeys.left.isDown) {
         this.hero.setVelocityX(-160);
+        this.hero.anims.play('left');
     } else if (cursorKeys.right.isDown) {
         this.hero.setVelocityX(160);
     } else {
