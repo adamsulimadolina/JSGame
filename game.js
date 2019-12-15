@@ -28,7 +28,6 @@ var config = {
 
 let score = 0;
 let game = new Phaser.Game(config);
-
 function preload() {
     this.load.image('bullet', 'bullet01.png');
     this.load.spritesheet('hero','hero.png',{frameWidth: 16, frameHeight:26})
@@ -46,11 +45,13 @@ function create() {
     const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
     const layer = map.createDynamicLayer(0, tileset, 0, 0);
     this.physics.world.setBounds(0,0,map.widthInPixels, map.heightInPixels);
-
     
+    layer.setCollisionByExclusion([30]);
+
 
     this.hero = this.physics.add.sprite(400, 300, 'hero');
     this.hero.health = 100;
+    this.hero.setScale(1.5);
     this.hero.setCollideWorldBounds(true);
 
     this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#000' });
@@ -124,8 +125,20 @@ function create() {
 
     this.physics.world.addCollider(this.enemies, this.enemies);
 
+    this.physics.world.addCollider(this.hero,layer);
+    this.physics.world.addCollider(this.enemies,layer);
+    this.physics.world.addCollider(this.hero_bullets,layer, function(bullet, layer) {
+        bullet.destroy();
+    });
+    this.physics.world.addCollider(this.enemy_bullets,layer, function(bullet, layer) {
+        bullet.destroy();
+    });
 
     cursorKeys = this.input.keyboard.createCursorKeys();
+
+    
+
+    
 
 }
 
@@ -207,4 +220,5 @@ function update() {
 
 function addScore(val) {
     this.score+=val;
+    console.log(this.score);
 }
