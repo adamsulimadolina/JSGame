@@ -21,11 +21,12 @@ var config = {
             enemy_bullets: null,
             time: 0,
             enemies: [],
-            score: 0,
         }
     }
 };
 
+
+let score = 0;
 let game = new Phaser.Game(config);
 
 function preload() {
@@ -41,19 +42,23 @@ function preload() {
 
 function create() {
     const map = this.make.tilemap({ key: 'cybernoid' });
+    console.log(map);
     const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
-    const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
-    layer.setCollisionByExclusion([-1]);
+    const layer = map.createDynamicLayer(0, tileset, 0, 0);
+    this.physics.world.setBounds(0,0,map.widthInPixels, map.heightInPixels);
+
+    
 
     this.hero = this.physics.add.sprite(400, 300, 'hero');
     this.hero.health = 100;
     this.hero.setCollideWorldBounds(true);
 
-    this.score = 0;
-    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText.setScrollFactor(0);
     //this.cameras.main.zoom = 1.5;
+
     this.cameras.main.startFollow(this.hero, true);
-    
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     this.anims.create({
         key: 'left',
@@ -100,6 +105,7 @@ function create() {
 
 
     this.physics.world.addCollider(this.enemies, this.hero_bullets, function (enemy, bullet) {
+        score+=10;
         enemy.destroy();
         bullet.destroy();
     });
@@ -121,21 +127,17 @@ function create() {
 
     cursorKeys = this.input.keyboard.createCursorKeys();
 
-    
-
-    
-
 }
 
 function update() {
 
-    if(this.score != null) this.scoreText.setText('Score: ' + this.score);
+    this.scoreText.setText('Score: ' + score);
     if (this.hero.health <= 0) this.scene.restart();
 
     for (let i = 0; i < this.enemies.length; i++) {
 
         if (this.enemies[i].active === false) this.enemies.splice(i, 1);
-        else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 60);
+        else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 200);
 
         let tmp = Math.random() * 100;
         if (this.timeClock.now % 1000 > 985 && tmp>50) {
@@ -150,7 +152,7 @@ function update() {
 
 
 
-    if (this.timeClock.now % 1000 > 985 && this.enemies.length < 3) {
+    if (this.timeClock.now % 1000 > 985 && this.enemies.length < 15) {
 
         let x = Math.floor(Math.random() * 800);
         let y = 0;
@@ -205,5 +207,4 @@ function update() {
 
 function addScore(val) {
     this.score+=val;
-    console.log(this.score);
 }
