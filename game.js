@@ -1,9 +1,12 @@
+
+
 class Hero extends Phaser.Physics.Arcade.Sprite
 {
     constructor (scene, x, y)
     {
-        super(scene, x, y, 'ball');
-        this.sprite = scene.physics.add.sprite(x,y,'ball');
+        super(scene, x, y, 'hero');
+        this.sprite = scene.physics.add.sprite(x,y,'hero');
+        this.sprite.frame=3
         this.sprite.setScale(2);
         this.sprite.health = 100;
         this.sprite.setCollideWorldBounds(true);
@@ -68,23 +71,26 @@ class Bullets extends Phaser.Physics.Arcade.Group
 
 class Main extends Phaser.Scene
 {
+    
+
     constructor ()
     {
         super();
 
         this.bullets;
-        this.ball;
+        this.hero;
         this.enemy;
         this.map;
         this.backgroundLayer;
         this.enemies = [];
-
+        this.scoreText=null
+        this.score
     }
-
+    
     preload ()
     {
         this.load.image('bullet', 'bullet01.png');
-        this.load.image('ball', 'ball.png');
+        this.load.spritesheet('hero','hero.png',{ frameWidth: 16, frameHeight: 26 })
         this.load.image('enemy', 'ball.png');
 
         
@@ -101,28 +107,44 @@ class Main extends Phaser.Scene
         layer.setCollisionByExclusion([ -1 ]);
         
         console.log(layer);
-
+        this.score=0
+        this.scoreText= this.add.text(16, 16, 'Score: ' + this.score, { fontSize: '20px', fill: '#000' });
 
         this.timeClock = new Phaser.Time.Clock(this);
         this.timeClock.start();
 
         this.bullets = new Bullets(this);
-        this.ball = new Hero(this, 400, 300);
+        this.hero = new Hero(this, 400, 300);
        
+        this.anims.create({
+            key:'left',
+            frames:this.anims.generateFrameNumbers('hero',{start:0,end:7}),
+            frameRate:10,
+            repeat:-1
+        });
+        this.anims.create({
+            key:'right',
+            frames:this.anims.generateFrameNumbers('hero',{start:0,end:7}),
+            frameRate:10,
+            repeat:-1
+        });
+        
+
         this.input.on('pointerdown', (pointer) => {
 
-            this.bullets.fireBullet(pointer.x, pointer.y, this.ball.sprite.x, this.ball.sprite.y);
+            this.bullets.fireBullet(pointer.x, pointer.y, this.hero.sprite.x, this.hero.sprite.y);
 
         });
         
-        this.physics.world.addCollider(this.ball, layer);
+        this.physics.world.addCollider(this.hero, layer);
 
         this.physics.world.addCollider(this.enemies, this.bullets, function(enemy, bullet) {
             enemy.destroy();
+            this.score+=10;
             bullet.destroy();
         });
 
-        this.physics.world.addCollider(this.ball.sprite, this.enemies, function(sprite, enemy) {
+        this.physics.world.addCollider(this.hero.sprite, this.enemies, function(sprite, enemy) {
             console.log(sprite);
             sprite.health-=55;
             enemy.destroy();
@@ -132,7 +154,8 @@ class Main extends Phaser.Scene
 
     update() 
     {
-        if(this.ball.sprite.health <= 0) this.scene.restart();
+        this.scoreText.setText('Score: '+ this.score)
+        if(this.hero.sprite.health <= 0) this.scene.restart();
 
         for(let i=0; i<this.enemies.length; i++) {
             if(this.enemies[i].active === false) console.log(this.enemies.splice(i,1));
@@ -157,25 +180,35 @@ class Main extends Phaser.Scene
             tmp_enem.setBounce(1);
             this.enemies.push(tmp_enem);
         }
+
+
+
         var cursorKeys = this.input.keyboard.createCursorKeys();
+
         if(cursorKeys.up.isDown) {
-            this.ball.sprite.setVelocityY(-160);
-        } else if (cursorKeys.down.isDown) {
-            this.ball.sprite.setVelocityY(160);
-        } else {
-            this.ball.sprite.setVelocityY(0);
+            this.hero.sprite.setVelocityY(-160);
+        } 
+        else if (cursorKeys.down.isDown) {
+            this.hero.sprite.setVelocityY(160);
+        } 
+        else {
+            this.hero.sprite.setVelocityY(0);
         }
+
         if (cursorKeys.left.isDown) {
-            this.ball.sprite.setVelocityX(-160);
-        } else if (cursorKeys.right.isDown) {
-            this.ball.sprite.setVelocityX(160);
-        } else {
-            this.ball.sprite.setVelocityX(0);
+            this.hero.sprite.setVelocityX(-160);
+            this.hero.anims.play('left',true);
+        } 
+        else if (cursorKeys.right.isDown) {
+            this.hero.sprite.setVelocityX(160);
+        } 
+        else {
+            this.hero.sprite.setVelocityX(0);
         }
     }
-    
-    
+   
 }
+
 
 const config = {
     type: Phaser.AUTO,
@@ -194,11 +227,3 @@ const config = {
 };
 
 let game = new Phaser.Game(config);
-
-function destroyEnemy(enemyList, enemy) {
-    for(let i = 0; i< enemyList.length; i++) {
-        if(enemy === enemyList[i]) enemyList.slice(i,1);
-        break;
-    }
-    return enemyList;
-}
