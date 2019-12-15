@@ -17,7 +17,8 @@ var config = {
             player: null,
             reticle: null,
             moveKeys: null,
-            bullets: null,
+            hero_bullets: null,
+            enemy_bullets: null,
             time: 0,
             enemies: [],
         }
@@ -70,13 +71,13 @@ function create() {
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
     
-    this.bullets = this.physics.add.group();
+    this.hero_bullets = this.physics.add.group();
+    this.enemy_bullets = this.physics.add.group();
 
     this.input.on('pointerdown', (pointer) => {
 
-        this.bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
-        this.bullet = this.bullets.getFirstDead();
-        console.log(this.bullet);
+        this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+        this.bullet = this.hero_bullets.getFirstDead();
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
         this.bullet.setScale(2);
@@ -84,8 +85,7 @@ function create() {
     });
 
 
-    this.physics.world.addCollider(this.enemies, this.bullets, function (enemy, bullet) {
-        console.log("XD")
+    this.physics.world.addCollider(this.enemies, this.hero_bullets, function (enemy, bullet) {
         enemy.destroy();
         bullet.destroy();
     });
@@ -96,7 +96,13 @@ function create() {
 
     });
 
-    this.physics.world.addCollider(this.hero, layer);
+    this.physics.world.addCollider(this.hero, this.enemy_bullets, function (sprite, enemy_bullets) {
+        sprite.health -= 15;
+        enemy_bullets.destroy();
+
+    });
+
+    this.physics.world.addCollider(this.enemies, this.enemies);
 }
 
 function update() {
@@ -104,23 +110,37 @@ function update() {
     if (this.hero.health <= 0) this.scene.restart();
 
     for (let i = 0; i < this.enemies.length; i++) {
+
         if (this.enemies[i].active === false) console.log(this.enemies.splice(i, 1));
+        else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 60);
+
+        let tmp = Math.random() * 100;
+        if (this.timeClock.now % 1000 > 985 && tmp>50) {
+            this.enemy_bullets.create(this.enemies[i].x, this.enemies[i].y, 'bullet', 0, false, false);
+            this.bullet = this.enemy_bullets.getFirstDead();
+            this.bullet.setActive(true);
+            this.bullet.setVisible(true);
+            this.bullet.setScale(1);
+            this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
+        }
     }
+
+
 
     if (this.timeClock.now % 1000 > 985 && this.enemies.length < 3) {
 
         let x = Math.floor(Math.random() * 800);
-        let y = Math.floor(Math.random() * 600);
+        let y = 0;
         let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
         let tmp_num = Math.floor(Math.random() * 5);
-        if (tmp_num === 0) tmp_enem.setVelocityX(100);
+        /*if (tmp_num === 0) tmp_enem.setVelocityX(100);
         else if (tmp_num === 1) tmp_enem.setVelocityX(-200);
         else if (tmp_num === 2) tmp_enem.setVelocityY(-200);
         else if (tmp_num === 3) tmp_enem.setVelocityY(200);
         else if (tmp_num === 4) {
             tmp_enem.setVelocityX(200);
             tmp_enem.setVelocityY(-200);
-        }
+        }*/
         tmp_enem.setCollideWorldBounds(true);
         tmp_enem.setBounce(1);
         this.enemies.push(tmp_enem);
