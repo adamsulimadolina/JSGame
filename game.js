@@ -17,7 +17,7 @@ var config = {
             player: null,
             reticle: null,
             moveKeys: null,
-            bullets: [],
+            bullets: null,
             time: 0,
             enemies: [],
         }
@@ -64,7 +64,9 @@ function create() {
 
     this.input.on('pointerdown', (pointer) => {
 
-        this.bullet = this.physics.add.sprite(this.hero.x, this.hero.y, 'bullet');
+        this.bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+        this.bullet = this.bullets.getFirstDead();
+        console.log(this.bullet);
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
         this.bullet.setScale(2);
@@ -72,7 +74,7 @@ function create() {
     });
 
 
-    this.physics.world.addCollider(this.enemies, this.bullet, function (enemy, bullet) {
+    this.physics.world.addCollider(this.enemies, this.bullets, function (enemy, bullet) {
         console.log("XD")
         enemy.destroy();
         bullet.destroy();
