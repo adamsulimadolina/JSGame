@@ -44,12 +44,41 @@ function create() {
     layer.setCollisionByExclusion([-1]);
 
     this.hero = this.physics.add.sprite(400, 300, 'hero');
-    this.hero.setScale(2);
+    //this.hero.setScale(2);
     this.hero.health = 100;
     this.hero.setCollideWorldBounds(true);
     
+    this.cameras.main.zoom = 1.5;
+    this.cameras.main.startFollow(this.hero);
     
-    this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
+    //this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
+
+    this.anims.create({
+        key: 'left',
+        frames: this.anims.generateFrameNumbers('hero', {start: 8, end: 15}),
+        frameRate: 10,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'right',
+        frames: this.anims.generateFrameNumbers('hero', {start: 0, end: 7}),
+        frameRate: 10,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'up',
+        frames: this.anims.generateFrameNumbers('hero', {start: 0, end: 7}),
+        frameRate: 10,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'stop',
+        frames: [{key:'hero',frame:3}],
+        frameRate: 10
+    })
 
     // this.bullets = this.add.group();
     // this.bullets.createMultiple({
@@ -88,6 +117,11 @@ function create() {
         enemy.destroy();
 
     });
+
+    this.physics.world.addCollider(this.hero, layer);
+
+    cursorKeys = this.input.keyboard.createCursorKeys();
+
 }
 
 function update() {
@@ -116,21 +150,33 @@ function update() {
         tmp_enem.setBounce(1);
         this.enemies.push(tmp_enem);
     }
-    var cursorKeys = this.input.keyboard.createCursorKeys();
+
+
+    this.hero.setVelocityX(0)
+    this.hero.setVelocityY(0)
     if (cursorKeys.up.isDown) {
+        this.hero.anims.play('right',true);
         this.hero.setVelocityY(-160);
-    } else if (cursorKeys.down.isDown) {
+    } 
+    else if (cursorKeys.down.isDown) {
+        this.hero.anims.play('right',true );
         this.hero.setVelocityY(160);
-    } else {
-        this.hero.setVelocityY(0);
-    }
-    if (cursorKeys.left.isDown) {
+    } 
+    else if (cursorKeys.left.isDown) {
+        this.hero.setVelocityX(0)
         this.hero.setVelocityX(-160);
-    } else if (cursorKeys.right.isDown) {
+        this.hero.anims.play('left',true );
+    } 
+    else if (cursorKeys.right.isDown) {
+        this.hero.setVelocityX(0)
         this.hero.setVelocityX(160);
+        this.hero.anims.play('right',true);
     } else {
-        this.hero.setVelocityX(0);
+    this.hero.anims.play('stop' );
+    
     }
+
+    
 }
 
 
