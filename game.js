@@ -1,3 +1,14 @@
+class Hero extends Phaser.Physics.Arcade.Sprite
+{
+    constructor (scene, x, y)
+    {
+        super(scene, x, y, 'ball');
+        this.sprite = scene.physics.add.sprite(x,y,'ball');
+        this.sprite.setScale(2);
+        this.sprite.health = 100;
+    }
+}
+
 class Bullet extends Phaser.Physics.Arcade.Sprite
 {
     constructor (scene, x, y)
@@ -87,10 +98,7 @@ class Main extends Phaser.Scene
         this.timeClock.start();
 
         this.bullets = new Bullets(this);
-
-        this.ball = this.physics.add.sprite(400,300,'ball');
-        this.ball.setCollideWorldBounds(true);
-        this.ball.setScale(2);
+        this.ball = new Hero(this, 400, 300);
 
 
         const map = this.make.tilemap({key: 'cybernoid'});
@@ -99,21 +107,31 @@ class Main extends Phaser.Scene
        
         this.input.on('pointerdown', (pointer) => {
 
-            this.bullets.fireBullet(pointer.x, pointer.y, this.ball.x, this.ball.y);
+            this.bullets.fireBullet(pointer.x, pointer.y, this.ball.sprite.x, this.ball.sprite.y);
 
         });
+
         this.physics.world.addCollider(this.enemies, this.bullets, function(enemy, bullet) {
             enemy.destroy();
             bullet.destroy();
+        });
+
+        this.physics.world.addCollider(this.ball.sprite, this.enemies, function(sprite, enemy) {
+            console.log(sprite);
+            sprite.health-=55;
+            enemy.destroy();
+            
         });
     }
 
     update() 
     {
+        if(this.ball.sprite.health <= 0) this.scene.restart();
+
         for(let i=0; i<this.enemies.length; i++) {
             if(this.enemies[i].active === false) console.log(this.enemies.splice(i,1));
-            console.log(this.enemies);
         }
+
         if(this.timeClock.now % 1000 > 985 && this.enemies.length < 3)
         {
             
@@ -135,18 +153,18 @@ class Main extends Phaser.Scene
         }
         var cursorKeys = this.input.keyboard.createCursorKeys();
         if(cursorKeys.up.isDown) {
-            this.ball.setVelocityY(-160);
+            this.ball.sprite.setVelocityY(-160);
         } else if (cursorKeys.down.isDown) {
-            this.ball.setVelocityY(160);
+            this.ball.sprite.setVelocityY(160);
         } else {
-            this.ball.setVelocityY(0);
+            this.ball.sprite.setVelocityY(0);
         }
         if (cursorKeys.left.isDown) {
-            this.ball.setVelocityX(-160);
+            this.ball.sprite.setVelocityX(-160);
         } else if (cursorKeys.right.isDown) {
-            this.ball.setVelocityX(160);
+            this.ball.sprite.setVelocityX(160);
         } else {
-            this.ball.setVelocityX(0);
+            this.ball.sprite.setVelocityX(0);
         }
     }
     
