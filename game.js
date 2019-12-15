@@ -28,7 +28,8 @@ let game = new Phaser.Game(config);
 
 function preload() {
     this.load.image('bullet', 'bullet01.png');
-    this.load.image('ball', 'ball.png');
+    this.load.spritesheet('hero','hero.png',{frameWidth: 16, frameHeight:26})
+
     this.load.image('enemy', 'ball.png');
 
 
@@ -42,11 +43,13 @@ function create() {
     const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
     layer.setCollisionByExclusion([-1]);
 
-    this.hero = this.physics.add.sprite(400, 300, 'ball');
+    this.hero = this.physics.add.sprite(400, 300, 'hero');
     this.hero.setScale(2);
     this.hero.health = 100;
     this.hero.setCollideWorldBounds(true);
     
+    
+    this.hero.animations.add('walk',[0,1,2,3,4],10,false) ;
 
     // this.bullets = this.add.group();
     // this.bullets.createMultiple({
