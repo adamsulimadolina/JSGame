@@ -85,6 +85,8 @@ function create() {
         enemy.destroy();
 
     });
+
+    this.physics.world.addCollider(this.hero, layer);
 }
 
 function update() {
