@@ -102,17 +102,25 @@ class Main extends Phaser.Scene
             this.bullets.fireBullet(pointer.x, pointer.y, this.ball.x, this.ball.y);
 
         });
-        this.physics.world.addCollider(this.enemies, this.bullets, this.killEnemy);
+        this.physics.world.addCollider(this.enemies, this.bullets, function(enemy, bullet) {
+            enemy.destroy();
+            bullet.destroy();
+        });
     }
 
     update() 
     {
-        if(this.timeClock.now % 1000 > 998)
+        if(this.timeClock.now % 1000 > 985 && this.enemies.length < 15)
         {
-            
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
+            let tmp_num = Math.floor(Math.random() * 4);
+            if(tmp_num === 0) tmp_enem.setVelocityX(100);
+            else if(tmp_num === 1) tmp_enem.setVelocityX(-100);
+            else if(tmp_num === 2) tmp_enem.setVelocityY(-100);
+            else if(tmp_num === 3) tmp_enem.setVelocityY(-100);
+            tmp_enem.setCollideWorldBounds(true);
             this.enemies.push(tmp_enem);
         }
         var cursorKeys = this.input.keyboard.createCursorKeys();
@@ -131,12 +139,7 @@ class Main extends Phaser.Scene
             this.ball.setVelocityX(0);
         }
     }
-    killEnemy(enemy, bullet) {
-        enemy.setActive(false);
-        enemy.setVisible(false);
-        bullet.setActive(false);
-        bullet.setVisible(false);
-    }
+    
     
 }
 
@@ -157,3 +160,11 @@ const config = {
 };
 
 let game = new Phaser.Game(config);
+
+function destroyEnemy(enemyList, enemy) {
+    for(let i = 0; i< enemyList.length; i++) {
+        if(enemy === enemyList[i]) enemyList.slice(i,1);
+        break;
+    }
+    return enemyList;
+}
