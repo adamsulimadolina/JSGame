@@ -20,7 +20,8 @@ var config = {
             hero_bullets: null,
             enemy_bullets: null,
             time: 0,
-            enemies: [],
+            fly_enemies: [],
+            ground_enemies: [],
         }
     }
 };
@@ -32,9 +33,8 @@ function preload() {
     this.load.image('bullet', 'bullet01.png');
     this.load.spritesheet('hero', 'hero.png', { frameWidth: 16, frameHeight: 26 })
 
-    this.load.image('enemy', 'ball.png');
-
-
+    this.load.spritesheet('fly_enemy', 'enemy.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('ground_enemy', 'enemy2.png', { frameWidth: 16, frameHeight: 16 });
     this.load.tilemapTiledJSON('walls', 'walls.json');
     this.load.image('gameTiles', 'walls.png');
 }
@@ -105,13 +105,25 @@ function create() {
     });
 
 
-    this.physics.world.addCollider(this.enemies, this.hero_bullets, function (enemy, bullet) {
+    this.physics.world.addCollider(this.fly_enemies, this.hero_bullets, function (enemy, bullet) {
         score += 10;
         enemy.destroy();
         bullet.destroy();
     });
 
-    this.physics.world.addCollider(this.hero, this.enemies, function (sprite, enemy) {
+    this.physics.world.addCollider(this.ground_enemies, this.hero_bullets, function (enemy, bullet) {
+        score += 10;
+        enemy.destroy();
+        bullet.destroy();
+    });
+
+    this.physics.world.addCollider(this.hero, this.fly_enemies, function (sprite, enemy) {
+        sprite.health -= 55;
+        enemy.destroy();
+
+    });
+
+    this.physics.world.addCollider(this.hero, this.ground_enemies, function (sprite, enemy) {
         sprite.health -= 55;
         enemy.destroy();
 
@@ -123,19 +135,18 @@ function create() {
 
     });
 
-    this.physics.world.addCollider(this.enemies, this.enemies, function(enemy1, enemy2) {
-        enemy1.setVelocityX(0); enemy1.setVelocityY(0);
-        enemy2.setVelocityX(0); enemy2.setVelocityY(0);
-    });
+    this.physics.world.addCollider(this.fly_enemies, this.fly_enemies);
 
-    this.physics.world.addCollider(this.hero, layer);
-    this.physics.world.addCollider(this.enemies, layer);
-    this.physics.world.addCollider(this.hero_bullets, layer, function (bullet, layer) {
-        bullet.destroy();
-    });
-    this.physics.world.addCollider(this.enemy_bullets, layer, function (bullet, layer) {
-        bullet.destroy();
-    });
+    this.physics.world.addCollider(this.ground_enemies, this.ground_enemies);
+
+    // this.physics.world.addCollider(this.hero, layer);
+    // this.physics.world.addCollider(this.enemies, layer);
+    // this.physics.world.addCollider(this.hero_bullets, layer, function (bullet, layer) {
+    //     bullet.destroy();
+    // });
+    // this.physics.world.addCollider(this.enemy_bullets, layer, function (bullet, layer) {
+    //     bullet.destroy();
+    // });
 
     cursorKeys = this.input.keyboard.createCursorKeys();
     console.log(cursorKeys);
@@ -154,9 +165,13 @@ function update() {
         this.hero.setVelocityX(0);
         this.hero.setVelocityY(0);
 
-        for(let i = 0; i < this.enemies.length; i++) 
+        for(let i = 0; i < this.fly_enemies.length; i++) 
         {
-            this.enemies[i].destroy();
+            this.fly_enemies[i].destroy();
+        }
+        for(let i = 0; i < this.ground_enemies.length; i++) 
+        {
+            this.ground_enemies[i].destroy();
         }
         for(let i = 0; i < this.enemy_bullets.length; i++) 
         {
@@ -176,16 +191,30 @@ function update() {
         }
     }
     else {
+        for (let i = 0; i < this.fly_enemies.length; i++) {
 
-        console.log("XD");
-        for (let i = 0; i < this.enemies.length; i++) {
-
-            if (this.enemies[i].active === false) this.enemies.splice(i, 1);
-            else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 200);
+            if (this.fly_enemies[i].active === false) this.fly_enemies.splice(i, 1);
+            else this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
 
             let tmp = Math.random() * 100;
             if (this.timeClock.now % 1000 > 985 && tmp > 50) {
-                this.enemy_bullets.create(this.enemies[i].x, this.enemies[i].y, 'bullet', 0, false, false);
+                this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
+                this.bullet = this.enemy_bullets.getFirstDead();
+                this.bullet.setActive(true);
+                this.bullet.setVisible(true);
+                this.bullet.setScale(1);
+                this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
+            }
+        }
+
+        for (let i = 0; i < this.ground_enemies.length; i++) {
+
+            if (this.ground_enemies[i].active === false) this.ground_enemies.splice(i, 1);
+            else this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
+
+            let tmp = Math.random() * 100;
+            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+                this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
                 this.bullet.setVisible(true);
@@ -196,17 +225,27 @@ function update() {
 
 
 
-        if (this.timeClock.now % 1000 > 985 && this.enemies.length < 15) {
+        if (this.timeClock.now % 1000 > 985 && this.fly_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
             let y = 0;
-            let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
+            let tmp_enem = this.physics.add.sprite(x, y, 'fly_enemy');
 
             tmp_enem.setCollideWorldBounds(true);
             tmp_enem.setBounce(1);
-            this.enemies.push(tmp_enem);
+            this.fly_enemies.push(tmp_enem);
         }
 
+        if (this.timeClock.now % 10000 > 995 && this.ground_enemies.length < 10) {
+
+            let x = Math.floor(Math.random() * 800);
+            let y = 0;
+            let tmp_enem = this.physics.add.sprite(x, y, 'ground_enemy');
+
+            tmp_enem.setCollideWorldBounds(true);
+            tmp_enem.setBounce(1);
+            this.ground_enemies.push(tmp_enem);
+        }
 
         this.hero.setVelocityX(0)
         this.hero.setVelocityY(0)
