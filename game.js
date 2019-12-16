@@ -233,10 +233,11 @@ function update() {
 
             tmp_enem.setCollideWorldBounds(true);
             tmp_enem.setBounce(1);
+            tmp_enem.setScale(2);
             this.fly_enemies.push(tmp_enem);
         }
 
-        if (this.timeClock.now % 10000 > 995 && this.ground_enemies.length < 10) {
+        if (this.timeClock.now % 10000 < 400 && this.ground_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
             let y = 0;
@@ -244,6 +245,7 @@ function update() {
 
             tmp_enem.setCollideWorldBounds(true);
             tmp_enem.setBounce(1);
+            tmp_enem.setScale(2);
             this.ground_enemies.push(tmp_enem);
         }
 
