@@ -25,66 +25,72 @@ var config = {
     }
 };
 
+
+let score = 0;
 let game = new Phaser.Game(config);
-let score=0;
 function preload() {
     this.load.image('bullet', 'bullet01.png');
-    this.load.spritesheet('hero','hero.png',{frameWidth: 16, frameHeight:26})
+    this.load.spritesheet('hero', 'hero.png', { frameWidth: 16, frameHeight: 26 })
 
     this.load.image('enemy', 'ball.png');
 
 
-    this.load.tilemapTiledJSON('cybernoid', 'cybernoid.json');
-    this.load.image('gameTiles', 'cybernoid.png');
+    this.load.tilemapTiledJSON('walls', 'walls.json');
+    this.load.image('gameTiles', 'walls.png');
 }
 
 function create() {
-    const map = this.make.tilemap({ key: 'cybernoid' });
-    const tileset = map.addTilesetImage("cybernoid.png", 'gameTiles');
-    const layer = map.createDynamicLayer("Ground", tileset, 0, 0);
-    
-    layer.setCollision([0,1,2,7,8,9,16,17,31]);
+    const map = this.make.tilemap({ key: 'walls' });
+    console.log(map);
+    const tileset = map.addTilesetImage('walls.png', 'gameTiles');
+    const layer = map.createDynamicLayer(0, tileset, 0, 0);
+    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    layer.setCollisionByExclusion([30]);
+
 
     this.hero = this.physics.add.sprite(400, 300, 'hero');
     this.hero.health = 100;
+    this.hero.setScale(1.5);
     this.hero.setCollideWorldBounds(true);
 
-    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#000' });
     this.scoreText.setScrollFactor(0);
+    //this.cameras.main.zoom = 1.5;
+
     this.cameras.main.startFollow(this.hero, true);
-    this.cameras.main.setBounds(0,0,map.widthInPixels, map.heightInPixels)
-    this.physics.world.setBounds(0,0,map.widthInPixels, map.heightInPixels)
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     this.anims.create({
         key: 'left',
-        frames: this.anims.generateFrameNumbers('hero', {start: 8, end: 15}),
+        frames: this.anims.generateFrameNumbers('hero', { start: 8, end: 15 }),
         frameRate: 10,
         repeat: -1
     })
 
     this.anims.create({
         key: 'right',
-        frames: this.anims.generateFrameNumbers('hero', {start: 0, end: 7}),
+        frames: this.anims.generateFrameNumbers('hero', { start: 0, end: 7 }),
         frameRate: 10,
         repeat: -1
     })
 
     this.anims.create({
         key: 'up',
-        frames: this.anims.generateFrameNumbers('hero', {start: 0, end: 7}),
+        frames: this.anims.generateFrameNumbers('hero', { start: 0, end: 7 }),
         frameRate: 10,
         repeat: -1
     })
 
     this.anims.create({
         key: 'stop',
-        frames: [{key:'hero',frame:3}],
+        frames: [{ key: 'hero', frame: 3 }],
         frameRate: 10
     })
 
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
-    
+
     this.hero_bullets = this.physics.add.group();
     this.enemy_bullets = this.physics.add.group();
 
@@ -100,9 +106,8 @@ function create() {
 
 
     this.physics.world.addCollider(this.enemies, this.hero_bullets, function (enemy, bullet) {
+        score += 10;
         enemy.destroy();
-        score+=10;
-        console.log(score);
         bullet.destroy();
     });
 
@@ -118,95 +123,133 @@ function create() {
 
     });
 
-    this.physics.world.addCollider(this.enemies, this.enemies);
+    this.physics.world.addCollider(this.enemies, this.enemies, function(enemy1, enemy2) {
+        enemy1.setVelocityX(0); enemy1.setVelocityY(0);
+        enemy2.setVelocityX(0); enemy2.setVelocityY(0);
+    });
 
-    this.physics.world.addCollider(this.hero,layer)
+    this.physics.world.addCollider(this.hero, layer);
+    this.physics.world.addCollider(this.enemies, layer);
+    this.physics.world.addCollider(this.hero_bullets, layer, function (bullet, layer) {
+        bullet.destroy();
+    });
+    this.physics.world.addCollider(this.enemy_bullets, layer, function (bullet, layer) {
+        bullet.destroy();
+    });
 
     cursorKeys = this.input.keyboard.createCursorKeys();
+    console.log(cursorKeys);
 
-    
 
-    
+
 
 }
 
 function update() {
 
+
     this.scoreText.setText('Score: ' + score);
-    if (this.hero.health <= 0) this.scene.restart();
+    if (this.hero.health <= 0) {
 
-    for (let i = 0; i < this.enemies.length; i++) {
+        this.hero.setVelocityX(0);
+        this.hero.setVelocityY(0);
 
-        if (this.enemies[i].active === false) this.enemies.splice(i, 1);
-        else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 60);
+        for(let i = 0; i < this.enemies.length; i++) 
+        {
+            this.enemies[i].destroy();
+        }
+        for(let i = 0; i < this.enemy_bullets.length; i++) 
+        {
+            this.enemy_bullets[i].destroy();
+        }
 
-        let tmp = Math.random() * 100;
-        if (this.timeClock.now % 1000 > 985 && tmp>50) {
-            this.enemy_bullets.create(this.enemies[i].x, this.enemies[i].y, 'bullet', 0, false, false);
-            this.bullet = this.enemy_bullets.getFirstDead();
-            this.bullet.setActive(true);
-            this.bullet.setVisible(true);
-            this.bullet.setScale(1);
-            this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
+        let gameOverText = this.add.text(400+this.cameras.main.scrollX, 300+this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
+        let newGameText = this.add.text(400+this.cameras.main.scrollX, 400+this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
+        gameOverText.setDepth(1);
+        newGameText.setDepth(1);
+        gameOverText.setOrigin(0.5);
+        newGameText.setOrigin(0.5)
+
+        if (cursorKeys.space.isDown) {
+            
+            this.scene.restart();
+        }
+    }
+    else {
+
+        console.log("XD");
+        for (let i = 0; i < this.enemies.length; i++) {
+
+            if (this.enemies[i].active === false) this.enemies.splice(i, 1);
+            else this.physics.moveTo(this.enemies[i], this.hero.x, this.hero.y, 200);
+
+            let tmp = Math.random() * 100;
+            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+                this.enemy_bullets.create(this.enemies[i].x, this.enemies[i].y, 'bullet', 0, false, false);
+                this.bullet = this.enemy_bullets.getFirstDead();
+                this.bullet.setActive(true);
+                this.bullet.setVisible(true);
+                this.bullet.setScale(1);
+                this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
+            }
+        }
+
+
+
+        if (this.timeClock.now % 1000 > 985 && this.enemies.length < 15) {
+
+            let x = Math.floor(Math.random() * 800);
+            let y = 0;
+            let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
+
+            tmp_enem.setCollideWorldBounds(true);
+            tmp_enem.setBounce(1);
+            this.enemies.push(tmp_enem);
+        }
+
+
+        this.hero.setVelocityX(0)
+        this.hero.setVelocityY(0)
+        if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
+            this.hero.setVelocityY(160);
+            this.hero.setVelocityX(160);
+            this.hero.anims.play('right', true);
+        } else if (cursorKeys.left.isDown && cursorKeys.down.isDown) {
+            this.hero.setVelocityY(160);
+            this.hero.setVelocityX(-160);
+            this.hero.anims.play('left', true);
+        } else if (cursorKeys.right.isDown && cursorKeys.up.isDown) {
+            this.hero.setVelocityY(-160);
+            this.hero.setVelocityX(160);
+            this.hero.anims.play('right', true);
+        } else if (cursorKeys.left.isDown && cursorKeys.up.isDown) {
+            this.hero.setVelocityY(-160);
+            this.hero.setVelocityX(-160);
+            this.hero.anims.play('left', true);
+        } else if (cursorKeys.up.isDown) {
+            this.hero.anims.play('right', true);
+            this.hero.setVelocityY(-160);
+        }
+        else if (cursorKeys.down.isDown) {
+            this.hero.anims.play('right', true);
+            this.hero.setVelocityY(160);
+        }
+        else if (cursorKeys.left.isDown) {
+            this.hero.setVelocityX(-160);
+            this.hero.anims.play('left', true);
+        }
+        else if (cursorKeys.right.isDown) {
+            this.hero.setVelocityX(160);
+            this.hero.anims.play('right', true);
+        } else {
+            this.hero.anims.play('stop');
+
         }
     }
 
-
-
-    if (this.timeClock.now % 1000 > 985 && this.enemies.length < 3) {
-
-        let x = Math.floor(Math.random() * 800);
-        let y = 0;
-        let tmp_enem = this.physics.add.sprite(x, y, 'enemy');
-        
-        tmp_enem.setCollideWorldBounds(true);
-        tmp_enem.setBounce(1);
-        this.enemies.push(tmp_enem);
-    }
-
-
-    this.hero.setVelocityX(0)
-    this.hero.setVelocityY(0)
-    if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
-        this.hero.setVelocityY(160);
-        this.hero.setVelocityX(160);
-        this.hero.anims.play('right',true);
-    } else if (cursorKeys.left.isDown && cursorKeys.down.isDown) {
-        this.hero.setVelocityY(160);
-        this.hero.setVelocityX(-160);
-        this.hero.anims.play('left',true);
-    } else if (cursorKeys.right.isDown && cursorKeys.up.isDown) {
-        this.hero.setVelocityY(-160);
-        this.hero.setVelocityX(160);
-        this.hero.anims.play('right',true);
-    } else if (cursorKeys.left.isDown && cursorKeys.up.isDown) {
-        this.hero.setVelocityY(-160);
-        this.hero.setVelocityX(-160);
-        this.hero.anims.play('left',true);
-    } else if (cursorKeys.up.isDown) {
-        this.hero.anims.play('right',true);
-        this.hero.setVelocityY(-160);
-    } 
-    else if (cursorKeys.down.isDown) {
-        this.hero.anims.play('right',true );
-        this.hero.setVelocityY(160);
-    } 
-    else if (cursorKeys.left.isDown) {
-        this.hero.setVelocityX(-160);
-        this.hero.anims.play('left',true );
-    } 
-    else if (cursorKeys.right.isDown) {
-        this.hero.setVelocityX(160);
-        this.hero.anims.play('right',true);
-    } else {
-        this.hero.anims.play('stop' );
-    
-    }
-
-    
 }
 
 function addScore(val) {
-    this.score+=val;
+    this.score += val;
     console.log(this.score);
 }
