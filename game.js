@@ -42,7 +42,7 @@ function preload() {
 function create() {
     const map = this.make.tilemap({ key: 'walls' });
     console.log(map);
-    const tileset = map.addTilesetImage('walls.png', 'gameTiles');
+    const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layer = map.createDynamicLayer(0, tileset, 0, 0);
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
