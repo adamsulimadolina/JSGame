@@ -41,7 +41,6 @@ function preload() {
 
 function create() {
     const map = this.make.tilemap({ key: 'walls' });
-    console.log(map);
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
     const layerBackground2 = map.createDynamicLayer(1, tileset);
@@ -109,6 +108,7 @@ function create() {
         this.physics.moveTo(this.bullet, pointer.x + this.cameras.main.scrollX, pointer.y + this.cameras.main.scrollY, 1000);
     });
 
+    this.physics.world.addCollider(this.fly_enemies, this.layerWalls);
 
     this.physics.world.addCollider(this.fly_enemies, this.hero_bullets, function (enemy, bullet) {
         score += 10;
@@ -230,7 +230,7 @@ function update() {
 
 
 
-        if (this.timeClock.now % 1000 > 985 && this.fly_enemies.length < 10) {
+        if (this.timeClock.now % 1000 > 980 && this.fly_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
@@ -240,7 +240,7 @@ function update() {
                     if(layerFloor.getTileAt(x,y).layer.name == "floor")
                     {
                         console.log("jestem tu " + x + " " + y)
-                        let tmp_enem = this.physics.add.sprite(x, y, 'fly_enemy');
+                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'fly_enemy');
                         console.log("aaaaa: " + x + " " + y)
                         tmp_enem.setCollideWorldBounds(true);
                         tmp_enem.setBounce(1);
