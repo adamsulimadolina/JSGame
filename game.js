@@ -26,7 +26,7 @@ var config = {
     }
 };
 
-
+let layerFloor=null;
 let score = 0;
 let game = new Phaser.Game(config);
 function preload() {
@@ -43,13 +43,18 @@ function create() {
     const map = this.make.tilemap({ key: 'walls' });
     console.log(map);
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
-    const layer = map.createDynamicLayer(0, tileset, 0, 0);
+    const layerBackground = map.createDynamicLayer(0, tileset);
+    const layerBackground2 = map.createDynamicLayer(1, tileset);
+    layerFloor = map.createDynamicLayer(2, tileset);
+    const layerWalls = map.createDynamicLayer(3, tileset);
+
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    layer.setCollisionByExclusion([30]);
+    let p = layerFloor.getTileAt(48,6).layer.name;
+    let z = layerFloor.layer.name
+    if(p===z)console.log("OOO: " + p + " " + z)
 
-    score = 0;
-    this.hero = this.physics.add.sprite(400, 300, 'hero');
+    this.hero = this.physics.add.sprite(400,300, 'hero');
     this.hero.health = 100;
     this.hero.setScale(1.5);
     this.hero.setCollideWorldBounds(true);
@@ -158,6 +163,7 @@ function create() {
 
 function update() {
 
+
     this.scoreText.setText('Score: ' + score);
     if (this.hero.health <= 0) {
 
@@ -227,13 +233,30 @@ function update() {
         if (this.timeClock.now % 1000 > 985 && this.fly_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
-            let y = 0;
-            let tmp_enem = this.physics.add.sprite(x, y, 'fly_enemy');
+            let y = Math.floor(Math.random() * 600);
+            while(true){ 
+                 if(layerFloor.getTileAt(x,y)!=null) {
+                     
+                    if(layerFloor.getTileAt(x,y).layer.name == "floor")
+                    {
+                        console.log("jestem tu " + x + " " + y)
+                        let tmp_enem = this.physics.add.sprite(x, y, 'fly_enemy');
+                        console.log("aaaaa: " + x + " " + y)
+                        tmp_enem.setCollideWorldBounds(true);
+                        tmp_enem.setBounce(1);
+                        tmp_enem.setScale(2);
+                        this.fly_enemies.push(tmp_enem);
+                        break;
+                    } 
 
-            tmp_enem.setCollideWorldBounds(true);
-            tmp_enem.setBounce(1);
-            tmp_enem.setScale(2);
-            this.fly_enemies.push(tmp_enem);
+                 }
+                 else {
+                    x = Math.floor(Math.random() * 800);
+                    y = Math.floor(Math.random() * 600);
+                 }
+                
+            }
+            
         }
 
         if (this.timeClock.now % 1000 >997 && this.timeClock.now > 15000 && this.ground_enemies.length < 10) {
