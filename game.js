@@ -48,13 +48,13 @@ function create() {
 
     layer.setCollisionByExclusion([30]);
 
-
+    score = 0;
     this.hero = this.physics.add.sprite(400, 300, 'hero');
     this.hero.health = 100;
     this.hero.setScale(1.5);
     this.hero.setCollideWorldBounds(true);
 
-    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#fff' });
     this.scoreText.setScrollFactor(0);
     //this.cameras.main.zoom = 1.5;
 
@@ -158,7 +158,6 @@ function create() {
 
 function update() {
 
-
     this.scoreText.setText('Score: ' + score);
     if (this.hero.health <= 0) {
 
@@ -177,7 +176,7 @@ function update() {
         {
             this.enemy_bullets[i].destroy();
         }
-
+        
         let gameOverText = this.add.text(400+this.cameras.main.scrollX, 300+this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
         let newGameText = this.add.text(400+this.cameras.main.scrollX, 400+this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
         gameOverText.setDepth(1);
@@ -197,7 +196,7 @@ function update() {
             else this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
 
             let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -213,7 +212,7 @@ function update() {
             else this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
 
             let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -237,7 +236,7 @@ function update() {
             this.fly_enemies.push(tmp_enem);
         }
 
-        if (this.timeClock.now % 10000 < 400 && this.ground_enemies.length < 10) {
+        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 15000 && this.ground_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
             let y = 0;
