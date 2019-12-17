@@ -26,7 +26,7 @@ var config = {
         }
     }
 };
-
+let layerBackground2=null
 let layerFloor=null;
 let score = 0;
 let game = new Phaser.Game(config);
@@ -45,15 +45,15 @@ function create() {
     const map = this.make.tilemap({ key: 'walls' });
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
-    const layerBackground2 = map.createDynamicLayer(1, tileset);
+    layerBackground2 = map.createDynamicLayer(1, tileset);
     layerFloor = map.createDynamicLayer(2, tileset);
     const layerWalls = map.createDynamicLayer(3, tileset);
 
+    layerBackground2.setCollision([115])
     layerWalls.setCollision([2,17,19,20,21,33,35,36,37,50,102,103,104,118,120])
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    let p = layerFloor.getTileAt(48,6).layer.name;
-    let z = layerFloor.layer.name
+ 
     //if(p===z)console.log("OOO: " + p + " " + z)
 
     this.hero = this.physics.add.sprite(400,300, 'hero');
@@ -295,8 +295,8 @@ function update() {
             let treasureX=Math.floor(Math.random() * 800)
             let treasureY=Math.floor(Math.random() * 600)
             while(true){
-                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
-                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
+                if(layerBackground2.getTileAt(treasureX,treasureY)!=null) {
+                    if(layerBackground2.getTileAt(treasureX,treasureY).layer.name == "bg2"){
                         console.log("skarb na " + treasureX + " " + treasureY)
                         let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
                         this.treasures.push(temp_treasure)
