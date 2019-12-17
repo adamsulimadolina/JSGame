@@ -70,39 +70,64 @@ function create() {
     this.cameras.main.startFollow(this.hero, true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+    //hero anims
     this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('hero', { start: 8, end: 15 }),
         frameRate: 10,
         repeat: -1
     })
-
     this.anims.create({
         key: 'right',
         frames: this.anims.generateFrameNumbers('hero', { start: 0, end: 7 }),
         frameRate: 10,
         repeat: -1
     })
-
     this.anims.create({
         key: 'up',
         frames: this.anims.generateFrameNumbers('hero', { start: 0, end: 7 }),
         frameRate: 10,
         repeat: -1
     })
-
     this.anims.create({
         key: 'stop',
         frames: [{ key: 'hero', frame: 3 }],
         frameRate: 10
     })
 
+    //flying enemy anims
     this.anims.create({
         key:'fly',
         frames: this.anims.generateFrameNumbers('fly_enemy', {start:0,end:7}),
         frameRate: 5,
         repeat:-1
     })
+
+    //ground enemy anims
+    this.anims.create({
+        key:'enemy_right',
+        frames: this.anims.generateFrameNumbers('ground_enemy', {start:0,end:7}),
+        frameRate: 5,
+        repeat:-1
+    })       
+    this.anims.create({
+        key:'enemy_left',
+        frames: this.anims.generateFrameNumbers('ground_enemy', {start:8,end:15}),
+        frameRate: 5,
+        repeat:-1
+    }) 
+    this.anims.create({
+        key:'enemy_down',
+        frames: this.anims.generateFrameNumbers('ground_enemy', {start:16,end:23}),
+        frameRate: 5,
+        repeat:-1
+    }) 
+    this.anims.create({
+        key:'enemy_up',
+        frames: this.anims.generateFrameNumbers('ground_enemy', {start:24,end:31}),
+        frameRate: 5,
+        repeat:-1
+    }) 
 
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
@@ -244,7 +269,10 @@ function update() {
         for (let i = 0; i < this.ground_enemies.length; i++) {
 
             if (this.ground_enemies[i].active === false) this.ground_enemies.splice(i, 1);
-            else this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
+            else {
+                this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
+                this.ground_enemies[i].anims.play('enemy_left',true)
+            }
 
             let tmp = Math.random() * 100;
             if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
@@ -257,7 +285,7 @@ function update() {
             }
         }
 
-        console.log(this.treasures.length)
+        //console.log(this.treasures.length)
         for(let i =0;i<this.treasures.length;i++)
         {
             if(this.treasures[i].active ===false) this.treasures.splice(i,1)
@@ -313,12 +341,12 @@ function update() {
             
         }
 
-        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 15000 && this.ground_enemies.length < 10) {
+        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 1500 && this.ground_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
-            let y = 0;
+            let y = Math.floor(Math.random() * 600)
             let tmp_enem = this.physics.add.sprite(x, y, 'ground_enemy');
-
+            console.log("biegam na " + x + " " + y)
             tmp_enem.setCollideWorldBounds(true);
             tmp_enem.setBounce(1);
             tmp_enem.setScale(1);
