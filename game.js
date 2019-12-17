@@ -29,6 +29,7 @@ var config = {
 let layerBackground2=null
 let layerFloor=null;
 let score = 0;
+let bonusBulletsArray= [];
 let game = new Phaser.Game(config);
 function preload() {
     this.load.image('bullet', 'bullet01.png');
@@ -42,6 +43,9 @@ function preload() {
 }
 
 function create() {
+    /**
+     * Tworzenie mapy
+     */
     const map = this.make.tilemap({ key: 'walls' });
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
@@ -56,10 +60,17 @@ function create() {
  
     //if(p===z)console.log("OOO: " + p + " " + z)
 
+    /**
+    Tworzenie bohatera
+     */
     this.hero = this.physics.add.sprite(400,300, 'hero');
     this.hero.health = 100;
     this.hero.setScale(1);
     this.hero.setCollideWorldBounds(true);
+
+    /** 
+    Dodawanie tekstów do widoku
+     */
 
     this.scoreText = this.add.text(this.cameras.main.scrollX+135, this.cameras.main.scrollY+100, 'Score: ' + this.score, { fontSize: '20px', fill: '#fff' });
     this.scoreText.setScrollFactor(0);
@@ -70,7 +81,9 @@ function create() {
     this.cameras.main.startFollow(this.hero, true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    //hero anims
+    /**
+    Animacje
+     */
     this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('hero', { start: 8, end: 15 }),
@@ -135,6 +148,9 @@ function create() {
     this.hero_bullets = this.physics.add.group();
     this.enemy_bullets = this.physics.add.group();
 
+    /** Funkcja na przycisk myszy
+    Tworzenie pocisku i skierowanie go w koordynaty kliknięcia
+     */
     this.input.on('pointerdown', (pointer) => {
         pointer.camera = this.cameras.main;
         pointer.updateWorldPoint(this.cameras.main)
@@ -146,7 +162,14 @@ function create() {
         this.physics.moveTo(this.bullet, pointer.worldX, pointer.worldY, 1000);
     });
 
+    /** 
+    Kolizje
+     */
     this.physics.world.addCollider(this.hero, layerWalls,function() {
+        //console.log('kolizja')
+    });
+
+    this.physics.world.addCollider(this.ground_enemies, layerWalls,function() {
         //console.log('kolizja')
     });
 
@@ -209,15 +232,20 @@ function create() {
 
 function update() {
 
-
+    
     this.scoreText.setText('Score: ' + score);
     if(this.hero.health<0) this.healthText.setText('Health: 0')
         else this.healthText.setText('Health: ' + this.hero.health)
+
+
+    /*
+    Postać sobie umarła
+    */
+
     if (this.hero.health <= 0) {
 
         this.hero.setVelocityX(0);
         this.hero.setVelocityY(0);
-
         for(let i = 0; i < this.fly_enemies.length; i++) 
         {
             this.fly_enemies[i].destroy();
@@ -229,6 +257,7 @@ function update() {
         for(let i = 0; i < this.enemy_bullets.length; i++) 
         {
             this.enemy_bullets[i].destroy();
+            
         }
         for(let i=0;i<this.treasures.length;i++) {
             this.treasures[i].destroy();
@@ -245,8 +274,9 @@ function update() {
             score = 0
             this.scene.restart();
         }
-    }
+    } //Tu postać nadal żyje
     else {
+        //strzelanie latających przeciwników
         for (let i = 0; i < this.fly_enemies.length; i++) {
 
             if (this.fly_enemies[i].active === false) this.fly_enemies.splice(i, 1);
@@ -255,8 +285,8 @@ function update() {
                 this.fly_enemies[i].anims.play('fly',true)
             }
 
-            let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
+            let tmp = Math.random() * 10000;
+            if (this.fly_enemies[i].timer%3000 === 0 > 495 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -265,8 +295,9 @@ function update() {
                 this.physics.moveTo(this.bullet, this.hero.x, this.hero.y, 100);
             }
         }
-
+        //strzelanie chodzących przeciwników
         for (let i = 0; i < this.ground_enemies.length; i++) {
+
 
             if (this.ground_enemies[i].active === false) this.ground_enemies.splice(i, 1);
             else {
@@ -274,8 +305,8 @@ function update() {
                 this.ground_enemies[i].anims.play('enemy_left',true)
             }
 
-            let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
+            let tmp = Math.random() * 10000;
+            if (tmp%500 > 495 && this.ground_enemies[i] != null) {
                 this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -285,12 +316,13 @@ function update() {
             }
         }
 
-        //console.log(this.treasures.length)
+        //generowanie skarbów
         for(let i =0;i<this.treasures.length;i++)
         {
             if(this.treasures[i].active ===false) this.treasures.splice(i,1)
         }
-        if((this.timeClock.now % 1000 >980) && this.treasures.length<5)
+        let tmp = Math.random() * 10000;
+        if((tmp%500 > 497) && this.treasures.length<5)
         {
             let treasureX=Math.floor(Math.random() * 800)
             let treasureY=Math.floor(Math.random() * 600)
@@ -310,10 +342,43 @@ function update() {
             }
         }
 
+        //generowanie latających przeciwników
+        tmp = Math.random() * 10000;
+        if (tmp%1000 > 994 && this.fly_enemies.length < 15) {
 
+            console.log("fly spawn")
+            let x = Math.floor(Math.random() * 800);
+            let y = Math.floor(Math.random() * 600);
+            while(true){ 
+                if(layerFloor.getTileAt(x,y)!=null) {
+                     
+                    if(layerFloor.getTileAt(x,y).layer.name == "floor")
+                    {
+                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'fly_enemy');
+                        tmp_enem.setCollideWorldBounds(true);
+                        tmp_enem.setBounce(1);
+                        tmp_enem.setScale(1);
+                        tmp_enem.timer = 1;
+                        console.log(tmp_enem)
+                        this.fly_enemies.push(tmp_enem);
+                        break;
+                    } 
 
-        if (this.timeClock.now % 1000 > 980 && this.fly_enemies.length < 10) {
+                }
+                else {
+                    x = Math.floor(Math.random() * 800);
+                    y = Math.floor(Math.random() * 600);
+                }
+                
+            }
+            
+        }
 
+        //generowanie biegających przeciwników
+        tmp = Math.random() * 10000;
+        if (tmp%1000 > 994 && this.ground_enemies.length < 20) {
+
+            console.log("ground spawn")
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             while(true){ 
@@ -321,13 +386,11 @@ function update() {
                      
                     if(layerFloor.getTileAt(x,y).layer.name == "floor")
                     {
-                        //console.log("jestem tu " + x + " " + y)
-                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'fly_enemy');
-                        //console.log("aaaaa: " + x + " " + y)
+                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'ground_enemy');
                         tmp_enem.setCollideWorldBounds(true);
                         tmp_enem.setBounce(1);
                         tmp_enem.setScale(1);
-                        this.fly_enemies.push(tmp_enem);
+                        this.ground_enemies.push(tmp_enem);
                         break;
                     } 
 
@@ -338,23 +401,29 @@ function update() {
                  }
                 
             }
-            
         }
 
-        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 1500 && this.ground_enemies.length < 10) {
-
-            let x = Math.floor(Math.random() * 800);
-            let y = Math.floor(Math.random() * 600)
-            let tmp_enem = this.physics.add.sprite(x, y, 'ground_enemy');
-            console.log("biegam na " + x + " " + y)
-            tmp_enem.setCollideWorldBounds(true);
-            tmp_enem.setBounce(1);
-            tmp_enem.setScale(1);
-            this.ground_enemies.push(tmp_enem);
-        }
+         
 
         this.hero.setVelocityX(0)
         this.hero.setVelocityY(0)
+        if(cursorKeys.space.isDown){
+            for(let i=0;i<8;i++){
+                bonusBulletsArray[i] = this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+                //bonusBulletsArray[i] = this.hero_bullets.getFirstDead();
+                bonusBulletsArray[i].setActive(true);
+                bonusBulletsArray[i].setVisible(true);
+                bonusBulletsArray[i].setScale(1);
+            }
+            this.physics.moveTo(bonusBulletsArray[0],this.hero.x,this.hero.y, 1000);
+            this.physics.moveTo(bonusBulletsArray[1],this.hero.x,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[2],this.hero.x,this.hero.y-100, 1000);
+            this.physics.moveTo(bonusBulletsArray[3],this.hero.x-100,this.hero.y, 1000);
+            this.physics.moveTo(bonusBulletsArray[4],this.hero.x+100,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[5],this.hero.x+100,this.hero.y-100, 1000);
+            this.physics.moveTo(bonusBulletsArray[6],this.hero.x-100,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[7],this.hero.x-100,this.hero.y-100, 1000);            
+        }
         if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
             this.hero.setVelocityY(160);
             this.hero.setVelocityX(160);
@@ -392,4 +461,20 @@ function update() {
         }
     }
 
+
+    function fire(x,y,angle,speed,gx,gy){
+         gx = gx || 0;
+         gy = gy || 0;
+
+         this.reset(x,y);
+         this.scale.set(1);
+
+         this.game.physics.arcade.velocityFromAngle(angle,speed,this.body.velocity)
+
+         this.angle = angle
+
+         this.body.gravity.set(gx,gy)
+    }
+
+    
 }
