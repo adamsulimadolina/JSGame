@@ -22,6 +22,7 @@ var config = {
             time: 0,
             fly_enemies: [],
             ground_enemies: [],
+            treasures: [],
         }
     }
 };
@@ -37,6 +38,7 @@ function preload() {
     this.load.spritesheet('ground_enemy', 'enemy2.png', { frameWidth: 16, frameHeight: 16 });
     this.load.tilemapTiledJSON('walls', 'walls.json');
     this.load.image('gameTiles', 'walls.png');
+    this.load.image('treasure','treasure.png');
 }
 
 function create() {
@@ -52,15 +54,17 @@ function create() {
 
     let p = layerFloor.getTileAt(48,6).layer.name;
     let z = layerFloor.layer.name
-    if(p===z)console.log("OOO: " + p + " " + z)
+    //if(p===z)console.log("OOO: " + p + " " + z)
 
     this.hero = this.physics.add.sprite(400,300, 'hero');
     this.hero.health = 100;
     this.hero.setScale(1);
     this.hero.setCollideWorldBounds(true);
 
-    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#fff' });
+    this.scoreText = this.add.text(this.cameras.main.scrollX+135, this.cameras.main.scrollY+100, 'Score: ' + this.score, { fontSize: '20px', fill: '#fff' });
     this.scoreText.setScrollFactor(0);
+    this.healthText = this.add.text(this.cameras.main.scrollX+530,this.cameras.main.scrollY+100, 'Health: ' + this.hero.health, {fontSize:'20px',fill: '#fff'})
+    this.healthText.setScrollFactor(0)
     this.cameras.main.zoom = 1.5;
 
     this.cameras.main.startFollow(this.hero, true);
@@ -110,7 +114,7 @@ function create() {
     });
 
     this.physics.world.addCollider(this.hero, layerWalls,function() {
-        console.log('kolizja')
+        //console.log('kolizja')
     });
 
     this.physics.world.addCollider(this.enemy_bullets,layerWalls,function(enemy_bullets) {
@@ -134,13 +138,13 @@ function create() {
     });
 
     this.physics.world.addCollider(this.hero, this.fly_enemies, function (sprite, enemy) {
-        sprite.health -= 55;
+        sprite.health -= 20;
         enemy.destroy();
 
     });
 
     this.physics.world.addCollider(this.hero, this.ground_enemies, function (sprite, enemy) {
-        sprite.health -= 55;
+        sprite.health -= 20;
         enemy.destroy();
 
     });
@@ -151,6 +155,11 @@ function create() {
 
     });
 
+    this.physics.world.addCollider(this.hero,this.treasures,function(hero,treasure){
+        treasure.destroy();
+        score+=50
+    })
+
     this.physics.world.addCollider(this.fly_enemies, this.fly_enemies);
 
     this.physics.world.addCollider(this.ground_enemies, this.ground_enemies);
@@ -158,7 +167,7 @@ function create() {
     
 
     cursorKeys = this.input.keyboard.createCursorKeys();
-    console.log(cursorKeys);
+    //console.log(cursorKeys);
 
 
 
@@ -169,6 +178,8 @@ function update() {
 
 
     this.scoreText.setText('Score: ' + score);
+    if(this.hero.health<0) this.healthText.setText('Health: 0')
+        else this.healthText.setText('Health: ' + this.hero.health)
     if (this.hero.health <= 0) {
 
         this.hero.setVelocityX(0);
@@ -186,6 +197,9 @@ function update() {
         {
             this.enemy_bullets[i].destroy();
         }
+        for(let i=0;i<this.treasures.length;i++) {
+            this.treasures[i].destroy();
+        }
         
         let gameOverText = this.add.text(400+this.cameras.main.scrollX, 300+this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
         let newGameText = this.add.text(400+this.cameras.main.scrollX, 400+this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
@@ -195,7 +209,7 @@ function update() {
         newGameText.setOrigin(0.5)
 
         if (cursorKeys.space.isDown) {
-            
+            score = 0
             this.scene.restart();
         }
     }
@@ -232,6 +246,31 @@ function update() {
             }
         }
 
+        console.log(this.treasures.length)
+        for(let i =0;i<this.treasures.length;i++)
+        {
+            if(this.treasures[i].active ===false) this.treasures.splice(i,1)
+        }
+        if((this.timeClock.now % 1000 >980) && this.treasures.length<5)
+        {
+            let treasureX=Math.floor(Math.random() * 800)
+            let treasureY=Math.floor(Math.random() * 600)
+            while(true){
+                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
+                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
+                        console.log("skarb na " + treasureX + " " + treasureY)
+                        let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
+                        this.treasures.push(temp_treasure)
+                        break
+                    }
+                }
+                else {
+                    treasureX = Math.floor(Math.random() * 800);
+                    treasureY = Math.floor(Math.random() * 600);
+                }
+            }
+        }
+
 
 
         if (this.timeClock.now % 1000 > 980 && this.fly_enemies.length < 10) {
@@ -243,9 +282,9 @@ function update() {
                      
                     if(layerFloor.getTileAt(x,y).layer.name == "floor")
                     {
-                        console.log("jestem tu " + x + " " + y)
+                        //console.log("jestem tu " + x + " " + y)
                         let tmp_enem = this.physics.add.sprite(x*16, y*16, 'fly_enemy');
-                        console.log("aaaaa: " + x + " " + y)
+                        //console.log("aaaaa: " + x + " " + y)
                         tmp_enem.setCollideWorldBounds(true);
                         tmp_enem.setBounce(1);
                         tmp_enem.setScale(1);
@@ -314,9 +353,4 @@ function update() {
         }
     }
 
-}
-
-function addScore(val) {
-    this.score += val;
-    console.log(this.score);
 }
