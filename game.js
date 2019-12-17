@@ -42,6 +42,9 @@ function preload() {
 }
 
 function create() {
+    /**
+     * Tworzenie mapy
+     */
     const map = this.make.tilemap({ key: 'walls' });
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
@@ -49,17 +52,22 @@ function create() {
     layerFloor = map.createDynamicLayer(2, tileset);
     const layerWalls = map.createDynamicLayer(3, tileset);
 
+
     layerWalls.setCollision([2,17,19,20,21,33,35,36,37,50,102,103,104,118,120])
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    let p = layerFloor.getTileAt(48,6).layer.name;
-    let z = layerFloor.layer.name
-    //if(p===z)console.log("OOO: " + p + " " + z)
 
+    /**
+    Tworzenie bohatera
+     */
     this.hero = this.physics.add.sprite(400,300, 'hero');
     this.hero.health = 100;
     this.hero.setScale(1);
     this.hero.setCollideWorldBounds(true);
+
+    /** 
+    Dodawanie tekstów do widoku
+     */
 
     this.scoreText = this.add.text(this.cameras.main.scrollX+135, this.cameras.main.scrollY+100, 'Score: ' + this.score, { fontSize: '20px', fill: '#fff' });
     this.scoreText.setScrollFactor(0);
@@ -70,7 +78,9 @@ function create() {
     this.cameras.main.startFollow(this.hero, true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    //hero anims
+    /**
+    Animacje
+     */
     this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('hero', { start: 8, end: 15 }),
@@ -135,6 +145,9 @@ function create() {
     this.hero_bullets = this.physics.add.group();
     this.enemy_bullets = this.physics.add.group();
 
+    /** Funkcja na przycisk myszy
+    Tworzenie pocisku i skierowanie go w koordynaty kliknięcia
+     */
     this.input.on('pointerdown', (pointer) => {
         pointer.camera = this.cameras.main;
         pointer.updateWorldPoint(this.cameras.main)
@@ -146,7 +159,14 @@ function create() {
         this.physics.moveTo(this.bullet, pointer.worldX, pointer.worldY, 1000);
     });
 
+    /** 
+    Kolizje
+     */
     this.physics.world.addCollider(this.hero, layerWalls,function() {
+        //console.log('kolizja')
+    });
+
+    this.physics.world.addCollider(this.ground_enemies, layerWalls,function() {
         //console.log('kolizja')
     });
 
@@ -213,11 +233,12 @@ function update() {
     this.scoreText.setText('Score: ' + score);
     if(this.hero.health<0) this.healthText.setText('Health: 0')
         else this.healthText.setText('Health: ' + this.hero.health)
+
+
     if (this.hero.health <= 0) {
 
         this.hero.setVelocityX(0);
         this.hero.setVelocityY(0);
-
         for(let i = 0; i < this.fly_enemies.length; i++) 
         {
             this.fly_enemies[i].destroy();
@@ -229,6 +250,7 @@ function update() {
         for(let i = 0; i < this.enemy_bullets.length; i++) 
         {
             this.enemy_bullets[i].destroy();
+            
         }
         for(let i=0;i<this.treasures.length;i++) {
             this.treasures[i].destroy();
@@ -255,8 +277,8 @@ function update() {
                 this.fly_enemies[i].anims.play('fly',true)
             }
 
-            let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
+            let tmp = Math.random() * 10000;
+            if (tmp%500 > 495 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -274,8 +296,8 @@ function update() {
                 this.ground_enemies[i].anims.play('enemy_left',true)
             }
 
-            let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
+            let tmp = Math.random() * 10000;
+            if (tmp%500 > 495 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -290,7 +312,8 @@ function update() {
         {
             if(this.treasures[i].active ===false) this.treasures.splice(i,1)
         }
-        if((this.timeClock.now % 1000 >980) && this.treasures.length<5)
+        let tmp = Math.random() * 10000;
+        if((tmp%500 > 497) && this.treasures.length<5)
         {
             let treasureX=Math.floor(Math.random() * 800)
             let treasureY=Math.floor(Math.random() * 600)
@@ -310,10 +333,31 @@ function update() {
             }
         }
 
+        let tmp = Math.random() * 10000;
+        if((tmp%500 > 497) && this.treasures.length<5)
+        {
+            let treasureX=Math.floor(Math.random() * 800)
+            let treasureY=Math.floor(Math.random() * 600)
+            while(true){
+                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
+                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
+                        console.log("skarb na " + treasureX + " " + treasureY)
+                        let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
+                        this.treasures.push(temp_treasure)
+                        break
+                    }
+                }
+                else {
+                    treasureX = Math.floor(Math.random() * 800);
+                    treasureY = Math.floor(Math.random() * 600);
+                }
+            }
+        }
 
+        tmp = Math.random() * 10000;
+        if (tmp%500 > 494 && this.fly_enemies.length < 10) {
 
-        if (this.timeClock.now % 1000 > 980 && this.fly_enemies.length < 10) {
-
+            
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             while(true){ 
@@ -339,7 +383,7 @@ function update() {
             
         }
 
-        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 1500 && this.ground_enemies.length < 10) {
+        if (this.timeClock.now % 1000 >997 && this.ground_enemies.length < 5) {
 
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600)
@@ -350,6 +394,8 @@ function update() {
             tmp_enem.setScale(1);
             this.ground_enemies.push(tmp_enem);
         }
+
+         
 
         this.hero.setVelocityX(0)
         this.hero.setVelocityY(0)
