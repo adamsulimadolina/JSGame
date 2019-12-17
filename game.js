@@ -35,6 +35,7 @@ let bonus_active= false;
 let layerBackground2 = null
 let layerFloor = null;
 let score = 0;
+let bonusBulletsArray= [];
 let game = new Phaser.Game(config);
 function preload() {
     this.load.image('bullet', 'bullet01.png');
@@ -249,14 +250,16 @@ let ground_timer = 0;
 let treasure_timer = 0;
 let booster_timer = 0;
 
-
 function update() {
-
     
     this.scoreText.setText('Score: ' + score);
-    if (this.hero.health <= 0) this.healthText.setText('Health: 0')
-    else this.healthText.setText('Health: ' + this.hero.health)
+    if(this.hero.health<0) this.healthText.setText('Health: 0')
+        else this.healthText.setText('Health: ' + this.hero.health)
 
+
+    /*
+    Postać sobie umarła
+    */
 
     if (this.hero.health <= 0) {
 
@@ -270,7 +273,7 @@ function update() {
         }
         for (let i = 0; i < this.enemy_bullets.length; i++) {
             this.enemy_bullets[i].destroy();
-
+            
         }
         for (let i = 0; i < this.treasures.length; i++) {
             this.treasures[i].destroy();
@@ -287,7 +290,7 @@ function update() {
             score = 0
             this.scene.restart();
         }
-    }
+    } //Tu postać nadal żyje
     else {
 
         if(bonus_active == true)
@@ -324,7 +327,7 @@ function update() {
                 }
             }
         }
-
+        //strzelanie chodzących przeciwników
         for (let i = 0; i < this.ground_enemies.length; i++) {
 
 
@@ -455,8 +458,27 @@ function update() {
         else ground_timer = (ground_timer + 1) % 250;
 
 
+         
+
         this.hero.setVelocityX(0)
         this.hero.setVelocityY(0)
+        if(cursorKeys.space.isDown){
+            for(let i=0;i<8;i++){
+                bonusBulletsArray[i] = this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+                //bonusBulletsArray[i] = this.hero_bullets.getFirstDead();
+                bonusBulletsArray[i].setActive(true);
+                bonusBulletsArray[i].setVisible(true);
+                bonusBulletsArray[i].setScale(1);
+            }
+            this.physics.moveTo(bonusBulletsArray[0],this.hero.x,this.hero.y, 1000);
+            this.physics.moveTo(bonusBulletsArray[1],this.hero.x,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[2],this.hero.x,this.hero.y-100, 1000);
+            this.physics.moveTo(bonusBulletsArray[3],this.hero.x-100,this.hero.y, 1000);
+            this.physics.moveTo(bonusBulletsArray[4],this.hero.x+100,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[5],this.hero.x+100,this.hero.y-100, 1000);
+            this.physics.moveTo(bonusBulletsArray[6],this.hero.x-100,this.hero.y+100, 1000);
+            this.physics.moveTo(bonusBulletsArray[7],this.hero.x-100,this.hero.y-100, 1000);            
+        }
         if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
             this.hero.setVelocityY(160+hero_velocity_boost_y);
             this.hero.setVelocityX(160+hero_velocity_boost_x);
@@ -495,4 +517,20 @@ function update() {
         }
     }
 
+
+    function fire(x,y,angle,speed,gx,gy){
+         gx = gx || 0;
+         gy = gy || 0;
+
+         this.reset(x,y);
+         this.scale.set(1);
+
+         this.game.physics.arcade.velocityFromAngle(angle,speed,this.body.velocity)
+
+         this.angle = angle
+
+         this.body.gravity.set(gx,gy)
+    }
+
 }
+
