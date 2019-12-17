@@ -97,6 +97,13 @@ function create() {
         frameRate: 10
     })
 
+    this.anims.create({
+        key:'fly',
+        frames: this.anims.generateFrameNumbers('fly_enemy', {start:0,end:7}),
+        frameRate: 5,
+        repeat:-1
+    })
+
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
 
@@ -105,12 +112,13 @@ function create() {
 
     this.input.on('pointerdown', (pointer) => {
         pointer.camera = this.cameras.main;
+        pointer.updateWorldPoint(this.cameras.main)
         this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
         this.bullet = this.hero_bullets.getFirstDead();
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
         this.bullet.setScale(1);
-        this.physics.moveTo(this.bullet, pointer.x + this.cameras.main.scrollX, pointer.y + this.cameras.main.scrollY, 1000);
+        this.physics.moveTo(this.bullet, pointer.worldX, pointer.worldY, 1000);
     });
 
     this.physics.world.addCollider(this.hero, layerWalls,function() {
@@ -217,7 +225,10 @@ function update() {
         for (let i = 0; i < this.fly_enemies.length; i++) {
 
             if (this.fly_enemies[i].active === false) this.fly_enemies.splice(i, 1);
-            else this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
+            else {
+                this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
+                this.fly_enemies[i].anims.play('fly',true)
+            }
 
             let tmp = Math.random() * 100;
             if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
