@@ -26,7 +26,7 @@ var config = {
     }
 };
 
-
+let layerFloor=null;
 let score = 0;
 let game = new Phaser.Game(config);
 function preload() {
@@ -41,24 +41,27 @@ function preload() {
 
 function create() {
     const map = this.make.tilemap({ key: 'walls' });
-    console.log(map);
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
     const layerBackground2 = map.createDynamicLayer(1, tileset);
-    const layerFloor = map.createDynamicLayer(2, tileset);
+    layerFloor = map.createDynamicLayer(2, tileset);
     const layerWalls = map.createDynamicLayer(3, tileset);
+
+    layerWalls.setCollision([2,17,19,20,21,33,35,36,37,50,102,103,104,118,120])
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+    let p = layerFloor.getTileAt(48,6).layer.name;
+    let z = layerFloor.layer.name
+    if(p===z)console.log("OOO: " + p + " " + z)
 
-
-    this.hero = this.physics.add.sprite(400, 300, 'hero');
+    this.hero = this.physics.add.sprite(400,300, 'hero');
     this.hero.health = 100;
-    this.hero.setScale(1.5);
+    this.hero.setScale(1);
     this.hero.setCollideWorldBounds(true);
 
-    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText = this.add.text(this.cameras.main.scrollX, this.cameras.main.scrollY, 'score: 0', { fontSize: '32px', fill: '#fff' });
     this.scoreText.setScrollFactor(0);
-    //this.cameras.main.zoom = 1.5;
+    this.cameras.main.zoom = 1.5;
 
     this.cameras.main.startFollow(this.hero, true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -102,9 +105,20 @@ function create() {
         this.bullet = this.hero_bullets.getFirstDead();
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
-        this.bullet.setScale(2);
+        this.bullet.setScale(1);
         this.physics.moveTo(this.bullet, pointer.x + this.cameras.main.scrollX, pointer.y + this.cameras.main.scrollY, 1000);
     });
+
+    this.physics.world.addCollider(this.hero, layerWalls,function() {
+        console.log('kolizja')
+    });
+
+    this.physics.world.addCollider(this.enemy_bullets,layerWalls,function(enemy_bullets) {
+        enemy_bullets.destroy();
+    })
+    this.physics.world.addCollider(this.hero_bullets,layerWalls,function(hero_bullets){
+        hero_bullets.destroy();
+    })
 
 
     this.physics.world.addCollider(this.fly_enemies, this.hero_bullets, function (enemy, bullet) {
@@ -141,14 +155,7 @@ function create() {
 
     this.physics.world.addCollider(this.ground_enemies, this.ground_enemies);
 
-    // this.physics.world.addCollider(this.hero, layer);
-    // this.physics.world.addCollider(this.enemies, layer);
-    // this.physics.world.addCollider(this.hero_bullets, layer, function (bullet, layer) {
-    //     bullet.destroy();
-    // });
-    // this.physics.world.addCollider(this.enemy_bullets, layer, function (bullet, layer) {
-    //     bullet.destroy();
-    // });
+    
 
     cursorKeys = this.input.keyboard.createCursorKeys();
     console.log(cursorKeys);
@@ -179,7 +186,7 @@ function update() {
         {
             this.enemy_bullets[i].destroy();
         }
-
+        
         let gameOverText = this.add.text(400+this.cameras.main.scrollX, 300+this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
         let newGameText = this.add.text(400+this.cameras.main.scrollX, 400+this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
         gameOverText.setDepth(1);
@@ -199,7 +206,7 @@ function update() {
             else this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
 
             let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -215,7 +222,7 @@ function update() {
             else this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
 
             let tmp = Math.random() * 100;
-            if (this.timeClock.now % 1000 > 985 && tmp > 50) {
+            if (this.timeClock.now % 1000 > 985 && tmp > 50 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -227,19 +234,36 @@ function update() {
 
 
 
-        if (this.timeClock.now % 1000 > 985 && this.fly_enemies.length < 10) {
+        if (this.timeClock.now % 1000 > 980 && this.fly_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
-            let y = 0;
-            let tmp_enem = this.physics.add.sprite(x, y, 'fly_enemy');
+            let y = Math.floor(Math.random() * 600);
+            while(true){ 
+                 if(layerFloor.getTileAt(x,y)!=null) {
+                     
+                    if(layerFloor.getTileAt(x,y).layer.name == "floor")
+                    {
+                        console.log("jestem tu " + x + " " + y)
+                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'fly_enemy');
+                        console.log("aaaaa: " + x + " " + y)
+                        tmp_enem.setCollideWorldBounds(true);
+                        tmp_enem.setBounce(1);
+                        tmp_enem.setScale(1);
+                        this.fly_enemies.push(tmp_enem);
+                        break;
+                    } 
 
-            tmp_enem.setCollideWorldBounds(true);
-            tmp_enem.setBounce(1);
-            tmp_enem.setScale(2);
-            this.fly_enemies.push(tmp_enem);
+                 }
+                 else {
+                    x = Math.floor(Math.random() * 800);
+                    y = Math.floor(Math.random() * 600);
+                 }
+                
+            }
+            
         }
 
-        if (this.timeClock.now % 10000 < 400 && this.ground_enemies.length < 10) {
+        if (this.timeClock.now % 1000 >997 && this.timeClock.now > 15000 && this.ground_enemies.length < 10) {
 
             let x = Math.floor(Math.random() * 800);
             let y = 0;
@@ -247,7 +271,7 @@ function update() {
 
             tmp_enem.setCollideWorldBounds(true);
             tmp_enem.setBounce(1);
-            tmp_enem.setScale(2);
+            tmp_enem.setScale(1);
             this.ground_enemies.push(tmp_enem);
         }
 
