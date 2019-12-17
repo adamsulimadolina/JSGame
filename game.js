@@ -26,7 +26,7 @@ var config = {
         }
     }
 };
-
+let layerBackground2=null
 let layerFloor=null;
 let score = 0;
 let game = new Phaser.Game(config);
@@ -48,14 +48,16 @@ function create() {
     const map = this.make.tilemap({ key: 'walls' });
     const tileset = map.addTilesetImage("walls.png", 'gameTiles');
     const layerBackground = map.createDynamicLayer(0, tileset);
-    const layerBackground2 = map.createDynamicLayer(1, tileset);
+    layerBackground2 = map.createDynamicLayer(1, tileset);
     layerFloor = map.createDynamicLayer(2, tileset);
     const layerWalls = map.createDynamicLayer(3, tileset);
 
-
+    layerBackground2.setCollision([115])
     layerWalls.setCollision([2,17,19,20,21,33,35,36,37,50,102,103,104,118,120])
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+ 
+    //if(p===z)console.log("OOO: " + p + " " + z)
 
     /**
     Tworzenie bohatera
@@ -229,7 +231,7 @@ function create() {
 
 function update() {
 
-
+    
     this.scoreText.setText('Score: ' + score);
     if(this.hero.health<0) this.healthText.setText('Health: 0')
         else this.healthText.setText('Health: ' + this.hero.health)
@@ -278,7 +280,7 @@ function update() {
             }
 
             let tmp = Math.random() * 10000;
-            if (tmp%500 > 495 && this.fly_enemies[i] != null) {
+            if (this.fly_enemies[i].timer%3000 === 0 > 495 && this.fly_enemies[i] != null) {
                 this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -290,6 +292,7 @@ function update() {
 
         for (let i = 0; i < this.ground_enemies.length; i++) {
 
+
             if (this.ground_enemies[i].active === false) this.ground_enemies.splice(i, 1);
             else {
                 this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
@@ -297,7 +300,7 @@ function update() {
             }
 
             let tmp = Math.random() * 10000;
-            if (tmp%500 > 495 && this.fly_enemies[i] != null) {
+            if (tmp%500 > 495 && this.ground_enemies[i] != null) {
                 this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
                 this.bullet = this.enemy_bullets.getFirstDead();
                 this.bullet.setActive(true);
@@ -318,29 +321,8 @@ function update() {
             let treasureX=Math.floor(Math.random() * 800)
             let treasureY=Math.floor(Math.random() * 600)
             while(true){
-                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
-                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
-                        console.log("skarb na " + treasureX + " " + treasureY)
-                        let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
-                        this.treasures.push(temp_treasure)
-                        break
-                    }
-                }
-                else {
-                    treasureX = Math.floor(Math.random() * 800);
-                    treasureY = Math.floor(Math.random() * 600);
-                }
-            }
-        }
-
-        let tmp = Math.random() * 10000;
-        if((tmp%500 > 497) && this.treasures.length<5)
-        {
-            let treasureX=Math.floor(Math.random() * 800)
-            let treasureY=Math.floor(Math.random() * 600)
-            while(true){
-                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
-                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
+                if(layerBackground2.getTileAt(treasureX,treasureY)!=null) {
+                    if(layerBackground2.getTileAt(treasureX,treasureY).layer.name == "bg2"){
                         console.log("skarb na " + treasureX + " " + treasureY)
                         let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
                         this.treasures.push(temp_treasure)
@@ -355,9 +337,30 @@ function update() {
         }
 
         tmp = Math.random() * 10000;
-        if (tmp%500 > 494 && this.fly_enemies.length < 10) {
+        if((tmp%500 > 497) && this.treasures.length<5)
+        {
+            let treasureX=Math.floor(Math.random() * 800)
+            let treasureY=Math.floor(Math.random() * 600)
+            while(true){
+                if(layerFloor.getTileAt(treasureX,treasureY)!=null) {
+                    if(layerFloor.getTileAt(treasureX,treasureY).layer.name == 'floor'){
+                        //console.log("skarb na " + treasureX + " " + treasureY)
+                        let temp_treasure = this.physics.add.sprite(treasureX*16,treasureY*16,'treasure')
+                        this.treasures.push(temp_treasure)
+                        break
+                    }
+                }
+                else {
+                    treasureX = Math.floor(Math.random() * 800);
+                    treasureY = Math.floor(Math.random() * 600);
+                }
+            }
+        }
 
-            
+        tmp = Math.random() * 10000;
+        if (tmp%1000 > 994 && this.fly_enemies.length < 15) {
+
+            console.log("fly spawn")
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             while(true){ 
@@ -369,6 +372,8 @@ function update() {
                         tmp_enem.setCollideWorldBounds(true);
                         tmp_enem.setBounce(1);
                         tmp_enem.setScale(1);
+                        tmp_enem.timer = 1;
+                        console.log(tmp_enem)
                         this.fly_enemies.push(tmp_enem);
                         break;
                     } 
@@ -382,17 +387,32 @@ function update() {
             }
             
         }
+        tmp = Math.random() * 10000;
+        if (tmp%1000 > 994 && this.ground_enemies.length < 20) {
 
-        if (this.timeClock.now % 1000 >997 && this.ground_enemies.length < 5) {
-
+            console.log("ground spawn")
             let x = Math.floor(Math.random() * 800);
-            let y = Math.floor(Math.random() * 600)
-            let tmp_enem = this.physics.add.sprite(x, y, 'ground_enemy');
-            console.log("biegam na " + x + " " + y)
-            tmp_enem.setCollideWorldBounds(true);
-            tmp_enem.setBounce(1);
-            tmp_enem.setScale(1);
-            this.ground_enemies.push(tmp_enem);
+            let y = Math.floor(Math.random() * 600);
+            while(true){ 
+                 if(layerFloor.getTileAt(x,y)!=null) {
+                     
+                    if(layerFloor.getTileAt(x,y).layer.name == "floor")
+                    {
+                        let tmp_enem = this.physics.add.sprite(x*16, y*16, 'ground_enemy');
+                        tmp_enem.setCollideWorldBounds(true);
+                        tmp_enem.setBounce(1);
+                        tmp_enem.setScale(1);
+                        this.ground_enemies.push(tmp_enem);
+                        break;
+                    } 
+
+                 }
+                 else {
+                    x = Math.floor(Math.random() * 800);
+                    y = Math.floor(Math.random() * 600);
+                 }
+                
+            }
         }
 
          
