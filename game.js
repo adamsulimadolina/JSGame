@@ -28,25 +28,34 @@ var config = {
     }
 };
 
-let hero_velocity_boost_x= 0;
-let hero_velocity_boost_y= 0;
-let bonus_timer= 0;
-let bonus_active= false;
+let hero_velocity_boost_x = 0;
+let hero_velocity_boost_y = 0;
+let hero_velocity_reduce_x = 0;
+let hero_velocity_reduce_y = 0;
+let bonus_speed_timer = 0;
+let bonus_slow_time = 0;
+let bonus_speed_active = false;
+let bonus_slow_active = false;
 let layerBackground2 = null
 let layerFloor = null;
 let score = 0;
-let bonusBulletsArray= [];
+let bonusBulletsArray = [];
 let game = new Phaser.Game(config);
+
 function preload() {
-    this.load.image('bullet', 'bullet01.png');
+    this.load.image('hero_bullet', 'hero_bullet.png');
+    this.load.image('enemy_ground_bullet', 'enemy_ground_bullet.png');
+    this.load.image('enemy_fly_bullet', 'enemy_fly_bullet.png');
     this.load.spritesheet('hero', 'hero.png', { frameWidth: 16, frameHeight: 26 })
 
-    this.load.spritesheet('fly_enemy', 'enemy.png', { frameWidth: 16, frameHeight: 16 });
-    this.load.spritesheet('ground_enemy', 'enemy2.png', { frameWidth: 16, frameHeight: 16 });
     this.load.tilemapTiledJSON('walls', 'walls.json');
     this.load.image('gameTiles', 'walls.png');
-    this.load.image('treasure', 'treasure.png');
-    this.load.image('booster_speed', 'ball.png');
+    this.load.spritesheet('fly_enemy', 'enemy.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('ground_enemy', 'enemy2.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('treasure', 'treasure.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('power1', 'power1.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('power2', 'power2.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('heart', 'heart.png', { frameWidth: 16, frameHeight: 16 });
 }
 
 function create() {
@@ -54,7 +63,7 @@ function create() {
      * Tworzenie mapy
      */
     const map = this.make.tilemap({ key: 'walls' });
-    const tileset = map.addTilesetImage("walls.png", 'gameTiles');
+    const tileset = map.addTilesetImage("walls.png", 'gameTiles', 16, 16, 0, 0);
     const layerBackground = map.createDynamicLayer(0, tileset);
     layerBackground2 = map.createDynamicLayer(1, tileset);
     layerFloor = map.createDynamicLayer(2, tileset);
@@ -104,14 +113,21 @@ function create() {
     })
     this.anims.create({
         key: 'up',
-        frames: this.anims.generateFrameNumbers('hero', { start: 0, end: 7 }),
+        frames: this.anims.generateFrameNumbers('hero', { start: 16, end: 23 }),
+        frameRate: 10,
+        repeat: -1
+    })
+    this.anims.create({
+        key: 'down',
+        frames: this.anims.generateFrameNumbers('hero', { start: 24, end: 31 }),
         frameRate: 10,
         repeat: -1
     })
     this.anims.create({
         key: 'stop',
-        frames: [{ key: 'hero', frame: 3 }],
-        frameRate: 10
+        frames: this.anims.generateFrameNumbers('hero', { start: 30, end: 31 }),
+        frameRate: 3,
+        repeat: -1
     })
 
     //flying enemy anims
@@ -148,6 +164,32 @@ function create() {
         repeat: -1
     })
 
+    //objects anims
+    this.anims.create({
+        key: 'power1',
+        frames: this.anims.generateFrameNumbers('power1', { start: 0, end: 3 }),
+        frameRate: 3,
+        repeat: -1
+    });
+    this.anims.create({
+        key: 'power2',
+        frames: this.anims.generateFrameNumbers('power2', { start: 0, end: 3 }),
+        frameRate: 3,
+        repeat: -1
+    });
+    this.anims.create({
+        key: 'treasure',
+        frames: this.anims.generateFrameNumbers('treasure', { start: 0, end: 3 }),
+        frameRate: 3,
+        repeat: -1
+    });
+    this.anims.create({
+        key: 'heart',
+        frames: this.anims.generateFrameNumbers('heart', { start: 0, end: 3 }),
+        frameRate: 3,
+        repeat: -1
+    });
+
     this.timeClock = new Phaser.Time.Clock(this);
     this.timeClock.start();
 
@@ -160,7 +202,7 @@ function create() {
     this.input.on('pointerdown', (pointer) => {
         pointer.camera = this.cameras.main;
         pointer.updateWorldPoint(this.cameras.main)
-        this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
+        this.hero_bullets.create(this.hero.x, this.hero.y, 'hero_bullet', 0, false, false);
         this.bullet = this.hero_bullets.getFirstDead();
         this.bullet.setActive(true);
         this.bullet.setVisible(true);
@@ -171,63 +213,74 @@ function create() {
     /** 
     Kolizje
      */
-    this.physics.world.addCollider(this.hero, layerWalls, function () {
-        //console.log('kolizja')
-    });
+    this.physics.world.addCollider(this.hero, layerWalls);
 
-    this.physics.world.addCollider(this.ground_enemies, layerWalls, function () {
-        //console.log('kolizja')
-    });
+    this.physics.world.addCollider(this.ground_enemies, layerWalls);
 
-    this.physics.world.addCollider(this.boosters, this.hero, function(booster, hero){
+    this.physics.world.addCollider(this.boosters, this.hero, function(booster, hero) {
+        if (booster.texture.key == "power1") {
+
+            hero_velocity_boost_x = 120;
+            hero_velocity_boost_y = 120;
+            bonus_speed_timer = 0;
+            bonus_speed_active = true;
+        }
+        if (booster.texture.key == "power2") {
+
+            hero_velocity_reduce_x = -120;
+            hero_velocity_reduce_y = -120;
+            bonus_slow_timer = 0;
+            bonus_slow_active = true;
+        }
+        if (booster.texture.key == "heart") {
+            hero.health += 15;
+            if (hero.health > 100) hero.health = 100;
+        }
+
         booster.destroy();
-        hero_velocity_boost_x+=320;
-        hero_velocity_boost_y+=320;
-        bonus_timer = 0;
-        bonus_active = true;
     });
 
-    this.physics.world.addCollider(this.enemy_bullets, layerWalls, function (enemy_bullets) {
+
+    this.physics.world.addCollider(this.enemy_bullets, layerWalls, function(enemy_bullets) {
         enemy_bullets.destroy();
     })
-    this.physics.world.addCollider(this.hero_bullets, layerWalls, function (hero_bullets) {
+    this.physics.world.addCollider(this.hero_bullets, layerWalls, function(hero_bullets) {
         hero_bullets.destroy();
     })
 
-
-    this.physics.world.addCollider(this.fly_enemies, this.hero_bullets, function (enemy, bullet) {
+    this.physics.world.addCollider(this.fly_enemies, this.hero_bullets, function(enemy, bullet) {
         score += 10;
         enemy.destroy();
         bullet.destroy();
     });
 
-    this.physics.world.addCollider(this.ground_enemies, this.hero_bullets, function (enemy, bullet) {
+    this.physics.world.addCollider(this.ground_enemies, this.hero_bullets, function(enemy, bullet) {
         score += 10;
         enemy.destroy();
         bullet.destroy();
     });
 
-    this.physics.world.addCollider(this.hero, this.fly_enemies, function (sprite, enemy) {
+    this.physics.world.addCollider(this.hero, this.fly_enemies, function(sprite, enemy) {
         sprite.health -= 20;
         enemy.destroy();
 
     });
 
-    this.physics.world.addCollider(this.hero, this.ground_enemies, function (sprite, enemy) {
-        sprite.health -= 20;
+    this.physics.world.addCollider(this.hero, this.ground_enemies, function(sprite, enemy) {
+        sprite.health -= 30;
         enemy.destroy();
 
     });
 
-    this.physics.world.addCollider(this.hero, this.enemy_bullets, function (sprite, enemy_bullets) {
+    this.physics.world.addCollider(this.hero, this.enemy_bullets, function(sprite, enemy_bullets) {
         sprite.health -= 15;
         enemy_bullets.destroy();
 
     });
 
-    this.physics.world.addCollider(this.hero, this.treasures, function (hero, treasure) {
+    this.physics.world.addCollider(this.hero, this.treasures, function(hero, treasure) {
         treasure.destroy();
-        score += 50
+        score += 25;
     })
 
     this.physics.world.addCollider(this.fly_enemies, this.fly_enemies);
@@ -239,9 +292,6 @@ function create() {
     cursorKeys = this.input.keyboard.createCursorKeys();
     //console.log(cursorKeys);
 
-
-
-
 }
 
 
@@ -249,12 +299,14 @@ let fly_timer = 0;
 let ground_timer = 0;
 let treasure_timer = 0;
 let booster_timer = 0;
+let game_over = false;
+let special_timer = 21;
 
 function update() {
-    
+    /**WYŚWIETLANIE TEKSTÓW */
     this.scoreText.setText('Score: ' + score);
-    if(this.hero.health<0) this.healthText.setText('Health: 0')
-        else this.healthText.setText('Health: ' + this.hero.health)
+    if (this.hero.health < 0) this.healthText.setText('Health: 0')
+    else this.healthText.setText('Health: ' + this.hero.health)
 
 
     /*
@@ -262,6 +314,7 @@ function update() {
     */
 
     if (this.hero.health <= 0) {
+
 
         this.hero.setVelocityX(0);
         this.hero.setVelocityY(0);
@@ -271,54 +324,77 @@ function update() {
         for (let i = 0; i < this.ground_enemies.length; i++) {
             this.ground_enemies[i].destroy();
         }
-        for (let i = 0; i < this.enemy_bullets.length; i++) {
-            this.enemy_bullets[i].destroy();
-            
+
+        for (let i = 0; i < this.enemy_bullets.children.length; i++) {
+
+            console.log(this.enemy_bullets.children[i])
+            this.enemy_bullets.children[i].destroy();
+
         }
+
         for (let i = 0; i < this.treasures.length; i++) {
             this.treasures[i].destroy();
         }
 
-        let gameOverText = this.add.text(400 + this.cameras.main.scrollX, 300 + this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
-        let newGameText = this.add.text(400 + this.cameras.main.scrollX, 400 + this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
-        gameOverText.setDepth(1);
-        newGameText.setDepth(1);
-        gameOverText.setOrigin(0.5);
-        newGameText.setOrigin(0.5)
-
-        if (cursorKeys.space.isDown) {
-            score = 0
-            this.scene.restart();
+        if (!game_over) {
+            game_over = true;
+            gameOverText = this.add.text(400 + this.cameras.main.scrollX, 300 + this.cameras.main.scrollY, 'GAME OVER', { fontSize: '64px', fill: '#fff' });
+            let newGameText = this.add.text(400 + this.cameras.main.scrollX, 400 + this.cameras.main.scrollY, 'Press space to restart', { fontSize: '30px', fill: '#fff' });
+            gameOverText.setDepth(1);
+            newGameText.setDepth(1);
+            gameOverText.setOrigin(0.5);
+            newGameText.setOrigin(0.5);
         }
+        if (cursorKeys.space.isDown) {
+            this.scene.restart();
+            game_over = false;
+            bonus_speed_active = false;
+            bonus_speed_timer = 0;
+            hero_velocity_boost_x = 0;
+            hero_velocity_boost_y = 0;
+            bonus_slow_active = false;
+            bonus_slow_timer = 0;
+            hero_velocity_reduce_x = 0;
+            hero_velocity_reduce_y = 0;
+            score = 0;
+
+        }
+
     } //Tu postać nadal żyje
     else {
 
-        if(bonus_active == true)
-        {
-            console.log(bonus_timer)
-            if(bonus_timer == 100)
-            {
-                console.log("XD")
-                bonus_active = false;
-                bonus_timer = 0;
+        /**BONUSY */
+        if (bonus_speed_active == true) {
+            if (bonus_speed_timer == 200) {
+                bonus_speed_active = false;
+                bonus_speed_timer = 0;
                 hero_velocity_boost_x = 0;
                 hero_velocity_boost_y = 0;
-            }
-            else bonus_timer++;
+            } else bonus_speed_timer++;
         }
+        if (bonus_slow_active == true) {
+            if (bonus_slow_timer == 200) {
+                bonus_slow_active = false;
+                bonus_slow_timer = 0;
+                hero_velocity_reduce_x = 0;
+                hero_velocity_reduce_y = 0;
+            } else bonus_slow_timer++;
+        }
+
+        /**STRZELANIE LATAJĄCYCH PRZECIWNIKÓW */
         for (let i = 0; i < this.fly_enemies.length; i++) {
 
             if (this.fly_enemies[i].active === false) this.fly_enemies.splice(i, 1);
             else {
-                this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 50);
+                this.physics.moveTo(this.fly_enemies[i], this.hero.x, this.hero.y, 90);
                 this.fly_enemies[i].anims.play('fly', true)
             }
 
             if (this.fly_enemies[i] != null) {
-                this.fly_enemies[i].timer = (this.fly_enemies[i].timer + 1) % 130;
+                this.fly_enemies[i].timer = (this.fly_enemies[i].timer + 1) % 160;
 
                 if (this.fly_enemies[i].timer == 0) {
-                    this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'bullet', 0, false, false);
+                    this.enemy_bullets.create(this.fly_enemies[i].x, this.fly_enemies[i].y, 'enemy_fly_bullet', 0, false, false);
                     this.bullet = this.enemy_bullets.getFirstDead();
                     this.bullet.setActive(true);
                     this.bullet.setVisible(true);
@@ -327,20 +403,20 @@ function update() {
                 }
             }
         }
-        //strzelanie chodzących przeciwników
+        /**STRZELANIE CHODZĄCYCH PRZECIWNIKÓW */
         for (let i = 0; i < this.ground_enemies.length; i++) {
 
 
             if (this.ground_enemies[i].active === false) this.ground_enemies.splice(i, 1);
             else {
-                this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 50);
-                this.ground_enemies[i].anims.play('enemy_left', true)
+                this.physics.moveTo(this.ground_enemies[i], this.hero.x, this.hero.y, 20);
+                this.ground_enemies[i].anims.play('enemy_down', true)
             }
 
             if (this.ground_enemies[i] != null) {
-                this.ground_enemies[i].timer = (this.ground_enemies[i].timer + 1) % 70;
+                this.ground_enemies[i].timer = (this.ground_enemies[i].timer + 1) % 100;
                 if (this.ground_enemies[i].timer == 0) {
-                    this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'bullet', 0, false, false);
+                    this.enemy_bullets.create(this.ground_enemies[i].x, this.ground_enemies[i].y, 'enemy_ground_bullet', 0, false, false);
                     this.bullet = this.enemy_bullets.getFirstDead();
                     this.bullet.setActive(true);
                     this.bullet.setVisible(true);
@@ -350,86 +426,119 @@ function update() {
             }
         }
 
+        /**GENEROWANIE SKARBÓW I ANIMACJA */
         for (let i = 0; i < this.treasures.length; i++) {
             if (this.treasures[i].active === false) this.treasures.splice(i, 1)
+            else this.treasures[i].anims.play('treasure', true)
         }
-        if (treasure_timer == 370 && this.treasures.length < 5) {
+        if (treasure_timer == 370 && this.treasures.length < 3) {
             let treasureX = Math.floor(Math.random() * 800)
             let treasureY = Math.floor(Math.random() * 600)
             while (true) {
                 if (layerBackground2.getTileAt(treasureX, treasureY) != null) {
                     if (layerBackground2.getTileAt(treasureX, treasureY).layer.name == "bg2") {
-                        console.log("skarb na " + treasureX + " " + treasureY)
                         let temp_treasure = this.physics.add.sprite(treasureX * 16, treasureY * 16, 'treasure')
                         this.treasures.push(temp_treasure)
                         break
                     }
-                }
-                else {
+                } else {
                     treasureX = Math.floor(Math.random() * 800);
                     treasureY = Math.floor(Math.random() * 600);
                 }
             }
-            treasure_timer = (treasure_timer + 1) % 600;
-        }
-        else treasure_timer = (treasure_timer + 1) % 600;
+            treasure_timer = (treasure_timer + 1) % 800;
+        } else treasure_timer = (treasure_timer + 1) % 800;
 
+
+        /** ANIMACJA BOOSTERÓW */
         for (let i = 0; i < this.boosters.length; i++) {
             if (this.boosters[i].active === false) this.boosters.splice(i, 1)
+            else {
+                if (this.boosters[i].texture.key == "power1") {
+                    this.boosters[i].anims.play('power1', true)
+                }
+                if (this.boosters[i].texture.key == "power2") {
+                    this.boosters[i].anims.play('power2', true)
+                }
+                if (this.boosters[i].texture.key == "heart") {
+                    this.boosters[i].anims.play('heart', true)
+                }
+
+            }
+            if (this.boosters[i] != null) {
+                if (this.boosters[i].timer == 1000) {
+                    this.boosters[i].destroy();
+                    console.log("boster destroyed")
+                } else this.boosters[i].timer++;
+            }
         }
-        if (booster_timer == 370 && this.boosters.length < 5) {
+        /**GENEROWANIE BOOSTERÓW */
+        let tmp_booster_choice = Math.random() * 1000;
+        if (booster_timer == 70 && this.boosters.length < 10) {
             let boosterX = Math.floor(Math.random() * 800)
             let boosterY = Math.floor(Math.random() * 600)
             while (true) {
                 if (layerBackground2.getTileAt(boosterX, boosterY) != null) {
                     if (layerBackground2.getTileAt(boosterX, boosterY).layer.name == "bg2") {
-                        console.log("skarb na " + boosterX + " " + boosterY)
-                        let temp_booster = this.physics.add.sprite(boosterX * 16, boosterY * 16, 'booster_speed')
-                        this.boosters.push(temp_booster)
+                        console.log("szansza szansa szansa: " + tmp_booster_choice)
+                        if (tmp_booster_choice < 450) {
+                            let temp_booster = this.physics.add.sprite(boosterX * 16, boosterY * 16, 'power1')
+                            temp_booster.timer = 0;
+                            this.boosters.push(temp_booster)
+                            console.log("booster speed")
+                        } else if (tmp_booster_choice < 900) {
+                            let temp_booster = this.physics.add.sprite(boosterX * 16, boosterY * 16, 'power2')
+                            temp_booster.timer = 0;
+                            this.boosters.push(temp_booster)
+                            console.log("booster slow")
+                        } else {
+                            let temp_booster = this.physics.add.sprite(boosterX * 16, boosterY * 16, 'heart')
+                            temp_booster.timer = 0;
+                            this.boosters.push(temp_booster)
+                            console.log("heart")
+                        }
+
                         break
                     }
-                }
-                else {
+                } else {
                     boosterX = Math.floor(Math.random() * 800);
                     boosterY = Math.floor(Math.random() * 600);
                 }
             }
-            booster_timer = (booster_timer + 1) % 600;
-        }
-        else booster_timer = (booster_timer + 1) % 600;
+            booster_timer = (booster_timer + 1) % 200;
+        } else booster_timer = (booster_timer + 1) % 200;
 
+        /**GENEROWANIE LATAJĄCYCH PRZECIWNIKÓW */
         if (fly_timer == 1 && this.fly_enemies.length < 15) {
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             while (true) {
-                
-                    if (layerFloor.getTileAt(x, y) != null) {
 
-                        if (layerFloor.getTileAt(x, y).layer.name == "floor") {
-                            let tmp_enem = this.physics.add.sprite(x * 16, y * 16, 'fly_enemy');
-                            tmp_enem.setCollideWorldBounds(true);
-                            tmp_enem.setBounce(1);
-                            tmp_enem.setScale(1);
-                            tmp_enem.timer = 1;
-                            this.fly_enemies.push(tmp_enem);
-                            break;
-                        }
+                if (layerFloor.getTileAt(x, y) != null) {
 
+                    if (layerFloor.getTileAt(x, y).layer.name == "floor") {
+                        let tmp_enem = this.physics.add.sprite(x * 16, y * 16, 'fly_enemy');
+                        tmp_enem.setCollideWorldBounds(true);
+                        tmp_enem.setBounce(1);
+                        tmp_enem.setScale(1);
+                        tmp_enem.timer = 1;
+                        this.fly_enemies.push(tmp_enem);
+                        break;
                     }
-                    else {
-                        x = Math.floor(Math.random() * 800);
-                        y = Math.floor(Math.random() * 600);
-                    }
+
+                } else {
+                    x = Math.floor(Math.random() * 800);
+                    y = Math.floor(Math.random() * 600);
                 }
-
-            
-            fly_timer = (fly_timer + 1) % 450;
-
-        }
-        else fly_timer = (fly_timer + 1) % 450;
+            }
 
 
-        if (ground_timer == 1 && this.ground_enemies.length < 20) {
+            fly_timer = (fly_timer + 1) % 300;
+
+        } else fly_timer = (fly_timer + 1) % 300;
+
+        /**GENEROWANIE CHODZĄCYCH PRZECIWNIKÓW */
+        if (ground_timer == 1 && this.ground_enemies.length < 40) {
             let x = Math.floor(Math.random() * 800);
             let y = Math.floor(Math.random() * 600);
             while (true) {
@@ -445,8 +554,7 @@ function update() {
                         break;
                     }
 
-                }
-                else {
+                } else {
                     x = Math.floor(Math.random() * 800);
                     y = Math.floor(Math.random() * 600);
                 }
@@ -454,83 +562,72 @@ function update() {
             }
             ground_timer = (ground_timer + 1) % 250;
 
-        }
-        else ground_timer = (ground_timer + 1) % 250;
+        } else ground_timer = (ground_timer + 1) % 250;
 
 
-         
 
+        /**SPECIAL ATTACK */
         this.hero.setVelocityX(0)
         this.hero.setVelocityY(0)
-        if(cursorKeys.space.isDown){
-            for(let i=0;i<8;i++){
-                bonusBulletsArray[i] = this.hero_bullets.create(this.hero.x, this.hero.y, 'bullet', 0, false, false);
-                //bonusBulletsArray[i] = this.hero_bullets.getFirstDead();
-                bonusBulletsArray[i].setActive(true);
-                bonusBulletsArray[i].setVisible(true);
-                bonusBulletsArray[i].setScale(1);
-            }
-            this.physics.moveTo(bonusBulletsArray[0],this.hero.x,this.hero.y, 1000);
-            this.physics.moveTo(bonusBulletsArray[1],this.hero.x,this.hero.y+100, 1000);
-            this.physics.moveTo(bonusBulletsArray[2],this.hero.x,this.hero.y-100, 1000);
-            this.physics.moveTo(bonusBulletsArray[3],this.hero.x-100,this.hero.y, 1000);
-            this.physics.moveTo(bonusBulletsArray[4],this.hero.x+100,this.hero.y+100, 1000);
-            this.physics.moveTo(bonusBulletsArray[5],this.hero.x+100,this.hero.y-100, 1000);
-            this.physics.moveTo(bonusBulletsArray[6],this.hero.x-100,this.hero.y+100, 1000);
-            this.physics.moveTo(bonusBulletsArray[7],this.hero.x-100,this.hero.y-100, 1000);            
-        }
+        if (cursorKeys.space.isDown && score >= 10) {
+            if (special_timer > 20) {
+                for (let i = 0; i < 8; i++) {
+                    bonusBulletsArray[i] = this.hero_bullets.create(this.hero.x, this.hero.y, 'hero_bullet', 0, false, false);
+                    //bonusBulletsArray[i] = this.hero_bullets.getFirstDead();
+                    bonusBulletsArray[i].setActive(true);
+                    bonusBulletsArray[i].setVisible(true);
+                    bonusBulletsArray[i].setScale(1);
+                }
+
+                score -= 10;
+                this.physics.moveTo(bonusBulletsArray[0], this.hero.x, this.hero.y, 1000);
+                this.physics.moveTo(bonusBulletsArray[1], this.hero.x, this.hero.y + 10, 1000);
+                this.physics.moveTo(bonusBulletsArray[2], this.hero.x, this.hero.y - 10, 1000);
+                this.physics.moveTo(bonusBulletsArray[3], this.hero.x - 10, this.hero.y, 1000);
+                this.physics.moveTo(bonusBulletsArray[4], this.hero.x + 10, this.hero.y + 10, 1000);
+                this.physics.moveTo(bonusBulletsArray[5], this.hero.x + 10, this.hero.y - 10, 1000);
+                this.physics.moveTo(bonusBulletsArray[6], this.hero.x - 10, this.hero.y + 10, 1000);
+                this.physics.moveTo(bonusBulletsArray[7], this.hero.x - 10, this.hero.y - 10, 1000);
+                special_timer = 0;
+            } else special_timer = (special_timer + 1);
+        } else special_timer = (special_timer + 1);
+
+        /**STEROWANIE POSTACI */
         if (cursorKeys.right.isDown && cursorKeys.down.isDown) {
-            this.hero.setVelocityY(160+hero_velocity_boost_y);
-            this.hero.setVelocityX(160+hero_velocity_boost_x);
+            this.hero.setVelocityY(160 + hero_velocity_boost_y + hero_velocity_reduce_y);
+            this.hero.setVelocityX(160 + hero_velocity_boost_x + hero_velocity_reduce_x);
             console.log(hero_velocity_boost_y)
             this.hero.anims.play('right', true);
         } else if (cursorKeys.left.isDown && cursorKeys.down.isDown) {
-            this.hero.setVelocityY(160+hero_velocity_boost_y);
-            this.hero.setVelocityX(-160-hero_velocity_boost_x);
+            this.hero.setVelocityY(160 + hero_velocity_boost_y + hero_velocity_reduce_y);
+            this.hero.setVelocityX(-160 - hero_velocity_boost_x - hero_velocity_reduce_x);
             this.hero.anims.play('left', true);
         } else if (cursorKeys.right.isDown && cursorKeys.up.isDown) {
-            this.hero.setVelocityY(-160-hero_velocity_boost_y);
-            this.hero.setVelocityX(160+hero_velocity_boost_x);
+            this.hero.setVelocityY(-160 - hero_velocity_boost_y - hero_velocity_reduce_y);
+            this.hero.setVelocityX(160 + hero_velocity_boost_x + hero_velocity_reduce_x);
             this.hero.anims.play('right', true);
         } else if (cursorKeys.left.isDown && cursorKeys.up.isDown) {
-            this.hero.setVelocityY(-160-hero_velocity_boost_y);
-            this.hero.setVelocityX(-160-hero_velocity_boost_x);
+            this.hero.setVelocityY(-160 - hero_velocity_boost_y - hero_velocity_reduce_y);
+            this.hero.setVelocityX(-160 - hero_velocity_boost_x - hero_velocity_reduce_x);
             this.hero.anims.play('left', true);
         } else if (cursorKeys.up.isDown) {
-            this.hero.anims.play('right', true);
-            this.hero.setVelocityY(-160-hero_velocity_boost_y);
-        }
-        else if (cursorKeys.down.isDown) {
-            this.hero.anims.play('right', true);
-            this.hero.setVelocityY(160+hero_velocity_boost_y);
-        }
-        else if (cursorKeys.left.isDown) {
-            this.hero.setVelocityX(-160-hero_velocity_boost_x);
+            this.hero.anims.play('up', true);
+            this.hero.setVelocityY(-160 - hero_velocity_boost_y - hero_velocity_reduce_y);
+        } else if (cursorKeys.down.isDown) {
+            this.hero.anims.play('down', true);
+            this.hero.setVelocityY(160 + hero_velocity_boost_y + hero_velocity_reduce_y);
+        } else if (cursorKeys.left.isDown) {
+            this.hero.setVelocityX(-160 - hero_velocity_boost_x - hero_velocity_reduce_x);
             this.hero.anims.play('left', true);
-        }
-        else if (cursorKeys.right.isDown) {
-            this.hero.setVelocityX(160+hero_velocity_boost_x);
+        } else if (cursorKeys.right.isDown) {
+            this.hero.setVelocityX(160 + hero_velocity_boost_x + hero_velocity_reduce_x);
             this.hero.anims.play('right', true);
         } else {
-            this.hero.anims.play('stop');
+            this.hero.anims.play('stop', true);
 
         }
     }
 
 
-    function fire(x,y,angle,speed,gx,gy){
-         gx = gx || 0;
-         gy = gy || 0;
-
-         this.reset(x,y);
-         this.scale.set(1);
-
-         this.game.physics.arcade.velocityFromAngle(angle,speed,this.body.velocity)
-
-         this.angle = angle
-
-         this.body.gravity.set(gx,gy)
-    }
 
 }
-
